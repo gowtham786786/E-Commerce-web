@@ -21,9 +21,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-async function updateBoatImages() {
-  console.log("Searching for boAt Rockerz 450 Wireless Headphone...");
-  const q = query(collection(db, "products"), where("name", "==", "boAt Rockerz 450 Wireless Headphone"));
+async function updateProductImages() {
+  const productName = process.argv[2];
+  const basePath = process.argv[3];
+
+  if (!productName || !basePath) {
+    console.error("Usage: node updateProductImages.js \"Product Name\" \"/base/image/path\"");
+    process.exit(1);
+  }
+
+  console.log(`Searching for ${productName}...`);
+  const q = query(collection(db, "products"), where("name", "==", productName));
   const snapshot = await getDocs(q);
   
   if (snapshot.empty) {
@@ -33,7 +41,6 @@ async function updateBoatImages() {
 
   const productDoc = snapshot.docs[0];
   
-  const basePath = "/images/products/Electronics/boat-rockerz-450-wireless-headphone";
   const newImages = [
     `${basePath}/image-1.png`,
     `${basePath}/image-2.png`,
@@ -51,7 +58,7 @@ async function updateBoatImages() {
   process.exit(0);
 }
 
-updateBoatImages().catch(err => {
+updateProductImages().catch(err => {
   console.error("Error:", err);
   process.exit(1);
 });
