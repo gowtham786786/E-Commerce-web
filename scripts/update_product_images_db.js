@@ -40,11 +40,11 @@ async function updateProduct() {
     // We assume the folder name in Electronics is exactly the product name
     const basePath = `/images/products/Electronics/${productName}`;
     const images = [
-      `${basePath}/1.png`,
-      `${basePath}/2.png`,
-      `${basePath}/3.png`,
-      `${basePath}/4.png`,
-      `${basePath}/5.png`
+      `${basePath}/front_view.jpg`,
+      `${basePath}/right_side_view.jpg`,
+      `${basePath}/left_side_view.jpg`,
+      `${basePath}/top_view.jpg`,
+      `${basePath}/back_view.jpg`
     ];
     
     await updateDoc(doc(db, "products", productDoc.id), {
