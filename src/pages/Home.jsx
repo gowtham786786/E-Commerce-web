@@ -58,14 +58,14 @@ const Home = () => {
               </p>
             </div>
           </div>
-          
+
           {/* Right Image */}
           <div className="flex-1 relative">
             <div className="absolute inset-0 bg-primary/5 rounded-full filter blur-3xl transform scale-90"></div>
             <div className="relative aspect-square flex items-center justify-center bg-white/40 rounded-full shadow-soft backdrop-blur-sm border border-white/50 p-8">
-              <img 
-                src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80" 
-                alt="Featured Product" 
+              <img
+                src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80"
+                alt="Featured Product"
                 className="w-full h-full object-contain rounded-2xl drop-shadow-2xl hover:scale-105 transition-transform duration-700"
               />
             </div>
@@ -74,7 +74,7 @@ const Home = () => {
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex flex-col gap-16">
-        
+
         {/* 2. TRUST BADGES BAR */}
         <section className="bg-white rounded-2xl shadow-sm border border-neutral-light p-6 md:p-8 -mt-24 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -127,21 +127,21 @@ const Home = () => {
           </div>
           <div className="flex overflow-x-auto pb-4 hide-scrollbar gap-6 snap-x">
             {CATEGORIES.map((cat, idx) => (
-              <Link 
-                key={idx} 
+              <Link
+                key={idx}
                 to={`/shop?category=${cat.name}`}
                 className="flex flex-col items-center gap-3 min-w-[120px] snap-start group"
               >
                 <div className={`w-28 h-28 rounded-full ${cat.color} flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-shadow`}>
-                  <img 
-                    src={cat.img} 
-                    alt={cat.name} 
+                  <img
+                    src={cat.img}
+                    alt={cat.name}
                     onError={(e) => {
                       console.error(`Failed to load image for category: ${cat.name}, path: ${cat.img}`);
                       e.target.onerror = null;
                       e.target.src = 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=150&q=80';
                     }}
-                    className="w-20 h-20 object-cover rounded-full mix-blend-multiply group-hover:scale-110 transition-transform duration-500" 
+                    className="w-20 h-20 object-cover rounded-full mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
                   />
                 </div>
                 <span className="text-sm font-bold text-neutral-dark text-center">{cat.name}</span>
@@ -173,7 +173,7 @@ const Home = () => {
             <div className="text-center py-12 bg-red-50 rounded-2xl border border-red-100">
               <h3 className="text-xl font-bold text-red-600 mb-2">Failed to load products</h3>
               <p className="text-red-500 mb-6 max-w-md mx-auto">{error.message || 'An unexpected error occurred while fetching products.'}</p>
-              <button 
+              <button
                 onClick={refetch}
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-bold transition-colors flex items-center gap-2 mx-auto"
               >
@@ -207,9 +207,9 @@ const Home = () => {
               </div>
             </div>
             <div className="flex-1 relative w-full h-full flex justify-center md:justify-end">
-              <img 
-                src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80" 
-                alt="Special Offer" 
+              <img
+                src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80"
+                alt="Special Offer"
                 className="w-full max-w-sm object-cover rounded-2xl drop-shadow-2xl hover:scale-105 transition-transform duration-500"
               />
             </div>
@@ -221,12 +221,12 @@ const Home = () => {
           <div className="text-center mb-10">
             <h2 className="text-2xl md:text-3xl font-bold text-neutral-dark">What Our Customers Say</h2>
           </div>
-          
+
           <div className="relative">
             <button className="absolute left-0 top-1/2 -translate-y-1/2 -ml-4 z-10 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-neutral hover:text-primary transition-colors border border-neutral-light hidden md:flex">
               <ChevronLeft className="w-5 h-5" />
             </button>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {TESTIMONIALS.map((testimonial) => (
                 <div key={testimonial.id} className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-light hover:shadow-soft transition-shadow">
