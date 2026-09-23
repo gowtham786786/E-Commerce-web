@@ -1,16 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup,
-  sendPasswordResetEmail,
-  getAdditionalUserInfo
-} from 'firebase/auth';
-import { auth, db } from '../firebase/firebase';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { supabase } from '../supabase/supabase';
 
 const AuthContext = createContext();
 
@@ -19,79 +8,92 @@ export function useAuth() {
 }
 
 const getAuthErrorMessage = (error) => {
-  switch (error.code) {
-    case 'auth/invalid-email': return 'Invalid email address.';
-    case 'auth/user-disabled': return 'This user account has been disabled.';
-    case 'auth/user-not-found': return 'No account found. Please sign up first.';
-    case 'auth/wrong-password': return 'Incorrect password.';
-    case 'auth/invalid-credential': return 'Invalid email or password.';
-    case 'auth/email-already-in-use': return 'An account with this email already exists. Please log in.';
-    case 'auth/popup-closed-by-user': return 'Google login was cancelled.';
-    case 'auth/network-request-failed': return 'Network error. Please check your connection.';
-    default: return error.message || 'An unexpected error occurred.';
-  }
+  if (!error) return 'An unexpected error occurred.';
+  const msg = error.message || error.error_description || '';
+  if (msg.includes('Invalid login credentials')) return 'Invalid email or password.';
+  if (msg.includes('User already registered')) return 'An account with this email already exists. Please log in.';
+  if (msg.includes('Password should be at least')) return 'Password must be at least 6 characters.';
+  if (msg.includes('Email not confirmed')) return 'Please check your email and confirm your account before logging in.';
+  return msg || 'Authentication error. Please try again.';
 };
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  async function createUserProfileDocument(userAuth, additionalData = {}) {
-    if (!userAuth) return;
+  // Helper to fetch and normalize user profile from Supabase
+  async function fetchUserProfile(authUser) {
+    if (!authUser) return null;
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
 
-    const userRef = doc(db, 'users', userAuth.uid);
-    const snapShot = await getDoc(userRef);
+      const fallbackName =
+        authUser.user_metadata?.displayName ||
+        authUser.user_metadata?.full_name ||
+        (authUser.email ? authUser.email.split('@')[0] : 'User');
 
-    const { email, displayName, photoURL, phoneNumber } = userAuth;
-    const fallbackName = displayName || additionalData.displayName || (email ? email.split('@')[0] : 'User');
-    const finalPhotoURL = photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=E2E8F0&color=1E293B`;
+      const photoURL =
+        authUser.user_metadata?.avatar_url ||
+        authUser.user_metadata?.photoURL ||
+        profile?.photo_url ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=E2E8F0&color=1E293B`;
 
-    if (!snapShot.exists()) {
-      const createdAt = serverTimestamp();
-      
-      try {
-        await setDoc(userRef, {
-          uid: userAuth.uid,
-          displayName: fallbackName,
-          email: email || '',
-          phone: phoneNumber || additionalData.phone || '',
-          photoURL: finalPhotoURL,
-          provider: additionalData.provider || 'email',
-          role: 'customer',
-          createdAt,
-          lastLogin: serverTimestamp(),
-          ...additionalData
-        });
-      } catch (error) {
-        console.error('Error creating user', error);
-      }
-    } else {
-      try {
-        const existingData = snapShot.data();
-        const updates = { lastLogin: serverTimestamp() };
-        
-        if (additionalData.provider === 'google') {
-           if (displayName && existingData.displayName !== displayName) updates.displayName = displayName;
-           if (photoURL && existingData.photoURL !== photoURL) updates.photoURL = photoURL;
-           if (phoneNumber && existingData.phone !== phoneNumber) updates.phone = phoneNumber;
-        }
-        
-        if (!existingData.displayName && !updates.displayName) updates.displayName = fallbackName;
-        if (!existingData.photoURL && !updates.photoURL) updates.photoURL = finalPhotoURL;
-        
-        await updateDoc(userRef, updates);
-      } catch (error) {
-        console.error('Error updating existing user data', error);
-      }
+      return {
+        id: authUser.id,
+        uid: authUser.id, // Backwards compatibility for existing components
+        email: authUser.email,
+        displayName: profile?.display_name || fallbackName,
+        phone: profile?.phone || '',
+        photoURL,
+        role: profile?.role || 'customer',
+        provider: authUser.app_metadata?.provider || 'email',
+        ...profile
+      };
+    } catch (err) {
+      console.warn("Could not fetch user profile from Supabase:", err);
+      return {
+        id: authUser.id,
+        uid: authUser.id,
+        email: authUser.email,
+        displayName: authUser.email ? authUser.email.split('@')[0] : 'User',
+        role: 'customer'
+      };
     }
-    return userRef;
   }
 
   async function signup(email, password, displayName) {
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, email, password);
-      await createUserProfileDocument(user, { displayName, provider: 'password' });
-      return user;
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            displayName,
+            full_name: displayName
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.user) {
+        // Ensure profile row exists
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          email: data.user.email,
+          display_name: displayName,
+          role: 'customer'
+        }, { onConflict: 'id' });
+
+        const userObj = await fetchUserProfile(data.user);
+        setCurrentUser(userObj);
+        return userObj;
+      }
+      return null;
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
     }
@@ -99,99 +101,91 @@ export function AuthProvider({ children }) {
 
   async function login(email, password) {
     try {
-      const { user } = await signInWithEmailAndPassword(auth, email, password);
-      await createUserProfileDocument(user, { provider: 'password' });
-      return user;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+
+      if (data?.user) {
+        const userObj = await fetchUserProfile(data.user);
+        setCurrentUser(userObj);
+        return userObj;
+      }
+      return null;
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
     }
   }
 
-  function logout() {
-    return signOut(auth);
+  async function logout() {
+    try {
+      await supabase.auth.signOut();
+      setCurrentUser(null);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   }
 
   async function loginWithGoogle() {
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-      const result = await signInWithPopup(auth, provider);
-      
-      const additionalInfo = getAdditionalUserInfo(result);
-      if (additionalInfo.isNewUser) {
-        await result.user.delete();
-        await signOut(auth);
-        throw new Error('No account found. Please sign up first.');
-      }
-
-      await createUserProfileDocument(result.user, { provider: 'google' });
-      return result.user;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
     } catch (error) {
-      if (error.message === 'No account found. Please sign up first.') {
-        throw error;
-      }
       throw new Error(getAuthErrorMessage(error));
     }
   }
 
   async function signupWithGoogle() {
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-      const result = await signInWithPopup(auth, provider);
-      await createUserProfileDocument(result.user, { provider: 'google' });
-      return result.user;
-    } catch (error) {
-      throw new Error(getAuthErrorMessage(error));
-    }
+    return loginWithGoogle();
   }
 
   async function resetPassword(email) {
     try {
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where("email", "==", email));
-      const querySnapshot = await getDocs(q);
-      
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0].data();
-        if (userDoc.provider === 'google') {
-          throw new Error('This account uses Google Sign-In. Please continue with Google.');
-        }
-      }
-      
-      await sendPasswordResetEmail(auth, email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/profile`
+      });
+      if (error) throw error;
     } catch (error) {
-      if (error.message === 'This account uses Google Sign-In. Please continue with Google.') {
-        throw error;
-      }
       throw new Error(getAuthErrorMessage(error));
     }
   }
 
   useEffect(() => {
-    let unsubscribeSnapshot = null;
-    
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        const userRef = doc(db, 'users', user.uid);
-        unsubscribeSnapshot = onSnapshot(userRef, (docSnap) => {
-          if (docSnap.exists()) {
-            setCurrentUser({ uid: user.uid, ...docSnap.data() });
-          } else {
-            setCurrentUser(user);
-          }
-          setLoading(false);
-        });
+    // 1. Initial session check
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const userObj = await fetchUserProfile(session.user);
+        setCurrentUser(userObj);
       } else {
         setCurrentUser(null);
-        if (unsubscribeSnapshot) unsubscribeSnapshot();
-        setLoading(false);
       }
+      setLoading(false);
+    }).catch((err) => {
+      console.warn("getSession error:", err);
+      setCurrentUser(null);
+      setLoading(false);
+    });
+
+    // 2. Auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const userObj = await fetchUserProfile(session.user);
+        setCurrentUser(userObj);
+      } else {
+        setCurrentUser(null);
+      }
+      setLoading(false);
     });
 
     return () => {
-      unsubscribeAuth();
-      if (unsubscribeSnapshot) unsubscribeSnapshot();
+      subscription?.unsubscribe();
     };
   }, []);
 
@@ -205,9 +199,18 @@ export function AuthProvider({ children }) {
     resetPassword
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-accent text-neutral-dark">
+        <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+        <p className="text-neutral font-medium text-sm animate-pulse">Loading ShopMate...</p>
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 }

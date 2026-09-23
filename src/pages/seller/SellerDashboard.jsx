@@ -2,7 +2,7 @@ import { DollarSign, Package, ShoppingCart } from 'lucide-react';
 import { formatCurrency, convertUsdToInr } from '../../utils/formatCurrency';
 
 const SellerDashboard = () => {
-  // Placeholder stats for the seller dashboard. In a real app, you would fetch these from Firestore where the product's sellerId matches the current user.
+  // Placeholder stats for the seller dashboard. In a real app, you would fetch these from Supabase where the product's sellerId matches the current user.
   const stats = {
     totalRevenue: 0,
     totalOrders: 0,

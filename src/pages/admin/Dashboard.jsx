@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
+import { supabase } from '../../supabase/supabase';
 import { formatCurrency, convertUsdToInr } from '../../utils/formatCurrency';
 import { Users, Package, ShoppingCart, DollarSign, Activity, TrendingUp, AlertTriangle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
@@ -29,18 +28,20 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const ordersSnapshot = await getDocs(collection(db, 'orders'));
+        const { data: ordersData } = await supabase.from('orders').select('*');
+        const orders = ordersData || [];
+
         let totalRevenue = 0;
         let todaysRevenue = 0;
         let pendingOrders = 0;
         const today = new Date();
-        today.setHours(0,0,0,0);
+        today.setHours(0, 0, 0, 0);
 
         // Generate last 7 days dynamically
-        const last7Days = Array.from({length: 7}, (_, i) => {
+        const last7Days = Array.from({ length: 7 }, (_, i) => {
           const d = new Date();
           d.setDate(d.getDate() - (6 - i));
-          d.setHours(0,0,0,0);
+          d.setHours(0, 0, 0, 0);
           return d;
         });
         
@@ -48,60 +49,64 @@ const Dashboard = () => {
         
         const chartDataMap = last7Days.map(date => ({
           dateObj: date,
-          name: dayNamesShort[date.getDay()], // Keep day names for X axis
+          name: dayNamesShort[date.getDay()],
           revenue: 0,
           orders: 0
         }));
 
-        ordersSnapshot.forEach(doc => {
-          const data = doc.data();
-          totalRevenue += data.total || 0;
-          if (data.status === 'pending') pendingOrders++;
-          if (data.createdAt?.toDate() >= today) {
-            todaysRevenue += data.total || 0;
+        orders.forEach(order => {
+          const orderTotal = Number(order.total || 0);
+          totalRevenue += orderTotal;
+          if (order.status === 'pending') pendingOrders++;
+
+          const createdAtDate = order.created_at ? new Date(order.created_at) : null;
+          if (createdAtDate && createdAtDate >= today) {
+            todaysRevenue += orderTotal;
           }
           
-          if (data.createdAt) {
-            const date = data.createdAt.toDate();
-            date.setHours(0,0,0,0);
-            
-            // Find if this date falls in our last 7 days window
-            const dayEntry = chartDataMap.find(d => d.dateObj.getTime() === date.getTime());
+          if (createdAtDate) {
+            createdAtDate.setHours(0, 0, 0, 0);
+            const dayEntry = chartDataMap.find(d => d.dateObj.getTime() === createdAtDate.getTime());
             if (dayEntry) {
-                dayEntry.revenue += convertUsdToInr(data.total || 0);
-                dayEntry.orders += 1;
+              dayEntry.revenue += convertUsdToInr(orderTotal);
+              dayEntry.orders += 1;
             }
           }
         });
 
-        // Clean up the dateObj before setting state to avoid Recharts issues
-        const finalChartData = chartDataMap.map(({dateObj, ...rest}) => rest);
-        // Rename the last item to 'Today' for clarity
+        const finalChartData = chartDataMap.map(({ dateObj, ...rest }) => rest);
         if (finalChartData.length > 0) {
-           finalChartData[finalChartData.length - 1].name = 'Today';
+          finalChartData[finalChartData.length - 1].name = 'Today';
         }
         setChartData(finalChartData);
 
-        const productsSnapshot = await getDocs(collection(db, 'products'));
+        const { data: productsData } = await supabase.from('products').select('id, stock');
+        const products = productsData || [];
         let outOfStock = 0;
-        productsSnapshot.forEach(doc => {
-          if (doc.data().stock <= 0) outOfStock++;
+        products.forEach(p => {
+          if (Number(p.stock) <= 0) outOfStock++;
         });
-        
-        const usersSnapshot = await getDocs(collection(db, 'users'));
+
+        const { data: profilesData } = await supabase.from('profiles').select('id');
+        const totalCustomers = (profilesData || []).length;
 
         setStats({
-          totalRevenue, todaysRevenue,
-          totalOrders: ordersSnapshot.size, pendingOrders,
-          totalProducts: productsSnapshot.size, outOfStock,
-          totalCustomers: usersSnapshot.size
+          totalRevenue,
+          todaysRevenue,
+          totalOrders: orders.length,
+          pendingOrders,
+          totalProducts: products.length,
+          outOfStock,
+          totalCustomers
         });
 
-        const recentOrdersQuery = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(5));
-        const recentOrdersSnap = await getDocs(recentOrdersQuery);
-        const recent = [];
-        recentOrdersSnap.forEach(doc => recent.push({ id: doc.id, ...doc.data() }));
-        setRecentOrders(recent);
+        const { data: recentData } = await supabase
+          .from('orders')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        setRecentOrders(recentData || []);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -246,14 +251,14 @@ const Dashboard = () => {
               {recentOrders.length > 0 ? (
                 recentOrders.map(order => (
                   <tr key={order.id} className="hover:bg-accent-light/50 transition-colors">
-                    <td className="p-4 text-sm font-medium text-primary">#{order.id.slice(-6).toUpperCase()}</td>
+                    <td className="p-4 text-sm font-medium text-primary">#{order.id ? String(order.id).slice(-6).toUpperCase() : 'ORDER'}</td>
                     <td className="p-4">
-                      <p className="text-sm font-medium text-neutral-dark">{order.customer?.name || 'Guest'}</p>
+                      <p className="text-sm font-medium text-neutral-dark">{order.customer?.name || order.shipping_address?.full_name || order.user_email || 'Customer'}</p>
                     </td>
                     <td className="p-4 text-sm text-neutral">
-                      {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}
+                      {order.created_at ? new Date(order.created_at).toLocaleDateString() : (order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A')}
                     </td>
-                    <td className="p-4 text-sm font-bold text-neutral-dark">{formatCurrency(convertUsdToInr(order.total))}</td>
+                    <td className="p-4 text-sm font-bold text-neutral-dark">{formatCurrency(convertUsdToInr(order.total_amount || order.total || 0))}</td>
                     <td className="p-4">
                       <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold capitalize
                         ${order.status === 'delivered' ? 'bg-green-100 text-green-700' : 

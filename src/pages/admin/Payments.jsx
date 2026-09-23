@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
+import { supabase } from '../../supabase/supabase';
 import { formatCurrency, convertUsdToInr } from '../../utils/formatCurrency';
 import { CreditCard, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -13,20 +12,23 @@ const Payments = () => {
 
   const fetchPayments = async () => {
     try {
-      // In a real app, you might have a dedicated 'payments' collection.
-      // Here, assuming payment info is tied to 'orders'.
-      const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const paymentList = [];
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        // Construct a mock transaction ID if none exists
-        paymentList.push({ 
-          id: data.transactionId || `TXN${doc.id.slice(0,8).toUpperCase()}`, 
-          orderId: doc.id,
-          ...data 
-        });
-      });
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      const paymentList = (data || []).map(order => ({
+        id: order.transaction_id || order.payment_intent_id || `TXN${String(order.id).replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+        orderId: String(order.id),
+        customerName: order.shipping_address?.full_name || order.customer?.name || order.user_email || 'Customer',
+        total: order.total_amount || order.total || 0,
+        paymentMethod: order.payment_method || order.paymentMethod || 'COD',
+        paymentStatus: order.payment_status || order.paymentStatus || (order.status === 'delivered' ? 'completed' : 'pending'),
+        createdAt: order.created_at || order.createdAt,
+        ...order
+      }));
       setPayments(paymentList);
     } catch (error) {
       console.error("Error fetching payments:", error);
@@ -41,9 +43,9 @@ const Payments = () => {
   }, []);
 
   const filteredPayments = payments.filter(p => 
-    p.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    p.id?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    p.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.customerName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -100,9 +102,9 @@ const Payments = () => {
                     <tr key={payment.id} className="hover:bg-accent-light/50 transition-colors">
                       <td className="p-4 text-sm font-medium text-neutral-dark">{payment.id}</td>
                       <td className="p-4 text-sm text-primary hover:underline cursor-pointer">
-                        #{payment.orderId.slice(-6).toUpperCase()}
+                        #{payment.orderId ? payment.orderId.slice(-6).toUpperCase() : 'ORDER'}
                       </td>
-                      <td className="p-4 text-sm text-neutral-dark">{payment.customer?.name || 'Guest'}</td>
+                      <td className="p-4 text-sm text-neutral-dark">{payment.customerName}</td>
                       <td className="p-4 text-sm font-bold text-neutral-dark">
                         {formatCurrency(convertUsdToInr(payment.total))}
                       </td>
@@ -112,7 +114,7 @@ const Payments = () => {
                         </span>
                       </td>
                       <td className="p-4">
-                         <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
                           payment.paymentStatus === 'completed' || (payment.paymentMethod === 'cod' && payment.status === 'delivered') ? 'bg-green-100 text-green-700' : 
                           payment.paymentStatus === 'failed' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
                         }`}>
@@ -120,7 +122,7 @@ const Payments = () => {
                         </span>
                       </td>
                       <td className="p-4 text-sm text-neutral text-right">
-                        {payment.createdAt?.toDate ? payment.createdAt.toDate().toLocaleDateString() : 'N/A'}
+                        {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : 'N/A'}
                       </td>
                     </tr>
                   ))

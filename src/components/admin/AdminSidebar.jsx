@@ -1,6 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Package, 
@@ -38,16 +36,18 @@ const navItems = [
 
 const AdminSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
 
   const handleLogout = async () => {
     try {
-      if (currentUser?.uid) {
-        await updateDoc(doc(db, 'users', currentUser.uid), {
-          otpVerified: false
-        });
-      }
+      sessionStorage.removeItem('admin_otp_verified');
+      sessionStorage.removeItem('admin_otp_hash');
+      sessionStorage.removeItem('admin_otp_expires');
+      sessionStorage.removeItem('admin_otp_attempts');
+      sessionStorage.removeItem('admin_otp_email');
       await logout();
+      navigate('/admin/login', { replace: true });
     } catch (error) {
       console.error('Failed to log out', error);
     }

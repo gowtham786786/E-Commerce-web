@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase/firebase';
+import { supabase } from '../supabase/supabase';
 
 const useCartStore = create(
   persist(
@@ -25,7 +24,7 @@ const useCartStore = create(
               {
                 productId: product.id,
                 name: product.name,
-                image: product.images?.[0] || '',
+                image: product.images?.[0] || product.thumbnail || '',
                 price: product.price,
                 quantity: product.quantity || 1,
               },
@@ -33,8 +32,6 @@ const useCartStore = create(
           }
           return { items: newItems };
         });
-        
-        // We sync externally or via a listener in the component tree
       },
 
       // Remove an item
@@ -60,29 +57,24 @@ const useCartStore = create(
       // Clear cart
       clearCart: () => set({ items: [] }),
 
-      // Sync from Firestore (call this when user logs in)
-      syncFromFirestore: async (userId) => {
+      // Sync from Supabase (call this when user logs in)
+      syncFromSupabase: async (userId) => {
         if (!userId) return;
         try {
-          const cartRef = doc(db, 'users', userId, 'cart', 'current');
-          const snap = await getDoc(cartRef);
-          
-          if (snap.exists()) {
-            const firestoreItems = snap.data().items || [];
-            
-            // Merge strategy: Local storage takes precedence or we merge them.
-            // For simplicity in this demo, let's just merge by product ID
+          const { data, error } = await supabase
+            .from('cart_items')
+            .select('items')
+            .eq('user_id', userId)
+            .single();
+
+          if (data && data.items) {
+            const remoteItems = data.items || [];
             set((state) => {
               const localItems = [...state.items];
               const mergedMap = new Map();
-              
-              // Add firestore items first
-              firestoreItems.forEach(item => {
-                mergedMap.set(item.productId, item);
-              });
-              
-              // Override/add local items
-              localItems.forEach(item => {
+
+              remoteItems.forEach((item) => mergedMap.set(item.productId, item));
+              localItems.forEach((item) => {
                 const existing = mergedMap.get(item.productId);
                 if (existing) {
                   mergedMap.set(item.productId, { ...existing, quantity: existing.quantity + item.quantity });
@@ -93,29 +85,32 @@ const useCartStore = create(
 
               return { items: Array.from(mergedMap.values()) };
             });
-            
-            // Sync back the merged cart
-            await get().syncToFirestore(userId);
+
+            await get().syncToSupabase(userId);
           } else {
-            // No firestore cart, push local cart
-            await get().syncToFirestore(userId);
+            await get().syncToSupabase(userId);
           }
         } catch (error) {
-          console.error("Error syncing cart from Firestore:", error);
+          console.error("Error syncing cart from Supabase:", error);
         }
       },
 
-      // Sync to Firestore (call this when cart changes and user is logged in)
-      syncToFirestore: async (userId) => {
+      // Sync to Supabase (call this when cart changes and user is logged in)
+      syncToSupabase: async (userId) => {
         if (!userId) return;
         try {
-          const cartRef = doc(db, 'users', userId, 'cart', 'current');
-          await setDoc(cartRef, {
-            items: get().items,
-            updatedAt: new Date().toISOString()
-          });
+          await supabase
+            .from('cart_items')
+            .upsert(
+              {
+                user_id: userId,
+                items: get().items,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'user_id' }
+            );
         } catch (error) {
-          console.error("Error syncing cart to Firestore:", error);
+          console.error("Error syncing cart to Supabase:", error);
         }
       },
 
@@ -123,14 +118,13 @@ const useCartStore = create(
       getSubtotal: () => {
         return get().items.reduce((total, item) => total + item.price * item.quantity, 0);
       },
-      
+
       getTotalCount: () => {
         return get().items.reduce((count, item) => count + item.quantity, 0);
       }
     }),
     {
-      name: 'shopmate-cart-storage', // unique name
-      // Only persist items
+      name: 'shopmate-cart-storage',
       partialize: (state) => ({ items: state.items }),
     }
   )

@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { updateProfile, updatePassword } from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../../firebase/firebase';
+import { supabase } from '../../supabase/supabase';
 import { User, Key, Save, Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
@@ -12,7 +9,7 @@ const Profile = () => {
   const { currentUser } = useAuth();
   
   const [profileData, setProfileData] = useState({
-    displayName: currentUser?.displayName || '',
+    displayName: currentUser?.displayName || currentUser?.display_name || '',
     email: currentUser?.email || '',
     phone: currentUser?.phone || '',
   });
@@ -30,30 +27,54 @@ const Profile = () => {
     e.preventDefault();
     setSavingProfile(true);
     try {
-      let photoURL = currentUser.photoURL;
+      let photoURL = currentUser?.photoURL || currentUser?.photo_url;
 
       if (photoFile) {
-        const fileRef = ref(storage, `profiles/${currentUser.uid}_${Date.now()}`);
-        const snapshot = await uploadBytes(fileRef, photoFile);
-        photoURL = await getDownloadURL(snapshot.ref);
+        try {
+          const fileExt = photoFile.name.split('.').pop();
+          const filePath = `${currentUser?.id || currentUser?.uid}_${Date.now()}.${fileExt}`;
+          const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, photoFile, { upsert: true });
+          if (!uploadError) {
+            const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+            if (data?.publicUrl) {
+              photoURL = data.publicUrl;
+            }
+          }
+        } catch (uploadErr) {
+          console.warn("Avatar storage upload failed:", uploadErr);
+        }
       }
 
-      await updateProfile(currentUser, {
-        displayName: profileData.displayName,
-        photoURL: photoURL
-      });
+      const userId = currentUser?.id || currentUser?.uid;
 
-      await updateDoc(doc(db, 'users', currentUser.uid), {
-        displayName: profileData.displayName,
-        phone: profileData.phone,
-        photoURL: photoURL
+      // Update Supabase auth metadata
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          displayName: profileData.displayName,
+          full_name: profileData.displayName,
+          phone: profileData.phone,
+          ...(photoURL ? { avatar_url: photoURL, photoURL } : {})
+        }
       });
+      if (authError) console.warn("Supabase auth metadata update notice:", authError.message);
+
+      // Update Supabase public.profiles table
+      if (userId) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            display_name: profileData.displayName,
+            phone: profileData.phone,
+            ...(photoURL ? { photo_url: photoURL } : {})
+          })
+          .eq('id', userId);
+        if (profileError) console.warn("Supabase profile table update notice:", profileError.message);
+      }
 
       toast.success('Profile updated successfully!');
-      // Reload window to update auth context easily (or could rely on context re-render)
-      window.location.reload(); 
+      setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
-      console.error(error);
+      console.error("Error updating profile:", error);
       toast.error('Failed to update profile');
     } finally {
       setSavingProfile(false);
@@ -68,16 +89,16 @@ const Profile = () => {
     
     setSavingPassword(true);
     try {
-      await updatePassword(currentUser, passwords.newPassword);
+      const { error } = await supabase.auth.updateUser({
+        password: passwords.newPassword
+      });
+
+      if (error) throw error;
       toast.success('Password updated successfully!');
       setPasswords({ newPassword: '', confirmPassword: '' });
     } catch (error) {
-      console.error(error);
-      if (error.code === 'auth/requires-recent-login') {
-        toast.error('Please log out and log back in to change your password.');
-      } else {
-        toast.error('Failed to update password');
-      }
+      console.error("Error updating password:", error);
+      toast.error(error.message || 'Failed to update password');
     } finally {
       setSavingPassword(false);
     }
@@ -105,7 +126,7 @@ const Profile = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-neutral-light p-6 text-center">
             <div className="relative inline-block mb-4 group">
               <img 
-                src={photoFile ? URL.createObjectURL(photoFile) : (currentUser?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.displayName || 'A')}`)} 
+                src={photoFile ? URL.createObjectURL(photoFile) : (currentUser?.photoURL || currentUser?.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.displayName || currentUser?.display_name || 'A')}`)} 
                 alt="Profile" 
                 className="w-32 h-32 rounded-full object-cover border-4 border-accent-light"
               />
@@ -114,7 +135,7 @@ const Profile = () => {
                 <input type="file" id="photo-upload" className="hidden" accept="image/*" onChange={e => setPhotoFile(e.target.files[0])} />
               </label>
             </div>
-            <h2 className="text-xl font-bold text-neutral-dark">{currentUser?.displayName}</h2>
+            <h2 className="text-xl font-bold text-neutral-dark">{currentUser?.displayName || currentUser?.display_name}</h2>
             <p className="text-neutral text-sm">{currentUser?.email}</p>
             <span className="inline-block mt-3 px-3 py-1 bg-primary/10 text-primary font-bold text-xs rounded-full uppercase tracking-wider">
               Administrator

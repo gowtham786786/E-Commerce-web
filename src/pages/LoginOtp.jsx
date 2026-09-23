@@ -71,14 +71,6 @@ const LoginOtp = () => {
       if (!res.ok) throw new Error(data.error || 'Invalid OTP');
       
       toast.success('Verified successfully!');
-      
-      // Note: Since we are using Firebase, if you want this OTP to truly log you in,
-      // the backend would need to return a Firebase Custom Token and you would call:
-      // await signInWithCustomToken(auth, data.token);
-      
-      // For now, we will just redirect to home and show success
-      // If you are relying on Firebase's currentUser, this standalone approach won't set it.
-      
       navigate('/');
     } catch (err) {
       const errorMessage = err.message === 'Failed to fetch' 

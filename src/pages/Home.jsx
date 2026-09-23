@@ -4,12 +4,12 @@ import ProductCard from '../components/ProductCard';
 import { useProducts } from '../hooks/useProducts';
 
 const CATEGORIES = [
-  { name: 'Electronics', color: 'bg-blue-100', img: 'https://images.unsplash.com/photo-1491933382434-500287f9b54b?auto=format&fit=crop&w=150&q=80' },
-  { name: 'Fashion', color: 'bg-pink-100', img: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=150&q=80' },
-  { name: 'Home & Kitchen', color: 'bg-orange-100', img: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=150&q=80' },
-  { name: 'Beauty', color: 'bg-purple-100', img: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=150&q=80' },
-  { name: 'Sports', color: 'bg-teal-100', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=150&q=80' },
-  { name: 'Accessories', color: 'bg-rose-100', img: 'https://images.unsplash.com/photo-1523206489230-c012c64b2b48?auto=format&fit=crop&w=150&q=80' },
+  { name: 'Electronics', color: 'bg-blue-100', img: '/images/categories/electronics.jpg' },
+  { name: 'Fashion', color: 'bg-pink-100', img: '/images/categories/fashion.jpg' },
+  { name: 'Home & Kitchen', color: 'bg-orange-100', img: '/images/categories/home-kitchen.jpg' },
+  { name: 'Beauty', color: 'bg-purple-100', img: '/images/categories/beauty.jpg' },
+  { name: 'Sports', color: 'bg-teal-100', img: '/images/categories/sports.jpg' },
+  { name: 'Accessories', color: 'bg-rose-100', img: '/images/categories/accessories.jpg' },
 ];
 
 const TESTIMONIALS = [
@@ -129,10 +129,10 @@ const Home = () => {
             {CATEGORIES.map((cat, idx) => (
               <Link
                 key={idx}
-                to={`/shop?category=${cat.name}`}
+                to={`/shop?category=${encodeURIComponent(cat.name)}`}
                 className="flex flex-col items-center gap-3 min-w-[120px] snap-start group"
               >
-                <div className={`w-28 h-28 rounded-full ${cat.color} flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-shadow`}>
+                <div className={`w-28 h-28 rounded-full ${cat.color} p-1.5 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300`}>
                   <img
                     src={cat.img}
                     alt={cat.name}
@@ -141,7 +141,7 @@ const Home = () => {
                       e.target.onerror = null;
                       e.target.src = 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=150&q=80';
                     }}
-                    className="w-20 h-20 object-cover rounded-full mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500"
                   />
                 </div>
                 <span className="text-sm font-bold text-neutral-dark text-center">{cat.name}</span>

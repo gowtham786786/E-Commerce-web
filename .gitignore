@@ -18,11 +18,8 @@ dist-ssr
 .idea
 .DS_Store
 *.suo
+.env
+.env.local
+.env.*.local
 *.env
 scratch/
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-. e n v  
- 

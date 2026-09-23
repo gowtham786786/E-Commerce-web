@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
+import { supabase } from '../../supabase/supabase';
 import ProductForm from '../../components/admin/ProductForm';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -15,11 +14,18 @@ const EditProduct = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const docRef = doc(db, 'products', id);
-        const docSnap = await getDoc(docRef);
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single();
         
-        if (docSnap.exists()) {
-          setInitialData(docSnap.data());
+        if (data && !error) {
+          setInitialData({
+            ...data,
+            subCategory: data.sub_category || data.subCategory,
+            bestSeller: data.best_seller ?? data.bestSeller
+          });
         } else {
           toast.error('Product not found');
           navigate('/admin/products');

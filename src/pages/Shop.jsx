@@ -14,13 +14,27 @@ const SORT_OPTIONS = [
   { label: 'Rating', value: 'rating' }
 ];
 
+// Robust normalization of category names across URL variants (e.g. "Home & Kitchen", "home-kitchen", "Home+&+Kitchen=", "Home ")
+const normalizeCategory = (cat) => {
+  if (!cat) return '';
+  try {
+    cat = decodeURIComponent(cat);
+  } catch (_) {}
+  return cat
+    .replace(/=+$/, '') // strip any trailing '='
+    .trim()
+    .toLowerCase()
+    .replace(/[\s&_\-]+/g, ''); // e.g. "home & kitchen", "home-kitchen", "Home + & + Kitchen=" all become "homekitchen"
+};
+
 const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { products, loading, error, refetch } = useProducts();
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   // Filter & Sort State
-  const initialCategory = searchParams.get('category') || 'All';
+  const initialCategoryParam = searchParams.get('category');
+  const initialCategory = initialCategoryParam ? initialCategoryParam.replace(/=+$/, '').trim() : 'All';
   const initialSearch = searchParams.get('search') || '';
   
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -40,41 +54,52 @@ const Shop = () => {
     return ['All', ...Array.from(cats).sort()];
   }, [products]);
 
-  // Initial load - sync URL params to state
+  // Sync canonical category name from availableCategories if there's a match
+  const canonicalCategory = useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'All') return 'All';
+    const targetNorm = normalizeCategory(selectedCategory);
+    const found = availableCategories.find(c => normalizeCategory(c) === targetNorm);
+    return found || selectedCategory;
+  }, [selectedCategory, availableCategories]);
+
+  // Initial load & external URL changes - sync URL params to state
   useEffect(() => {
     const categoryParam = searchParams.get('category');
     const searchParam = searchParams.get('search');
     
-    if (categoryParam) setSelectedCategory(categoryParam);
-    if (searchParam) setSearchQuery(searchParam);
+    if (categoryParam !== null) {
+      const cleanCat = categoryParam.replace(/=+$/, '').trim();
+      setSelectedCategory(cleanCat || 'All');
+    }
+    if (searchParam !== null) {
+      setSearchQuery(searchParam);
+    }
   }, [searchParams]);
 
-  // Update URL params when category or search changes
+  // Update URL params when category or search changes (cleanly without trailing = or leaked params)
   useEffect(() => {
-    const params = new URLSearchParams(searchParams);
-    if (selectedCategory !== 'All') {
-      params.set('category', selectedCategory);
-    } else {
-      params.delete('category');
+    const params = new URLSearchParams();
+    if (canonicalCategory && canonicalCategory !== 'All') {
+      params.set('category', canonicalCategory);
     }
-    
     if (searchQuery) {
       params.set('search', searchQuery);
-    } else {
-      params.delete('search');
     }
     
-    setSearchParams(params);
-  }, [selectedCategory, searchQuery, setSearchParams]);
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [canonicalCategory, searchQuery]);
 
   // Client-side filtering and sorting
   const filteredAndSortedProducts = useMemo(() => {
     if (!products) return [];
     let result = [...products];
 
-    // Category filter
-    if (selectedCategory !== 'All') {
-      result = result.filter(p => p.category === selectedCategory);
+    // Category filter using robust normalization
+    if (canonicalCategory !== 'All') {
+      const targetNorm = normalizeCategory(canonicalCategory);
+      result = result.filter(p => normalizeCategory(p.category) === targetNorm);
     }
 
     // Search filter
@@ -87,7 +112,7 @@ const Shop = () => {
       );
     }
 
-    // Price filter (priceRange is in INR, p.price is in USD)
+    // Price filter (priceRange is in INR, p.price is in INR)
     result = result.filter(p => convertUsdToInr(p.price) >= priceRange[0] && convertUsdToInr(p.price) <= priceRange[1]);
 
     // Rating filter
@@ -117,12 +142,12 @@ const Shop = () => {
     }
 
     return result;
-  }, [products, selectedCategory, searchQuery, priceRange, minRating, sortBy]);
+  }, [products, canonicalCategory, searchQuery, priceRange, minRating, sortBy]);
 
   // Reset pagination when filters change
   useEffect(() => {
     setPage(1);
-  }, [selectedCategory, searchQuery, priceRange, minRating, sortBy]);
+  }, [canonicalCategory, searchQuery, priceRange, minRating, sortBy]);
 
   const paginatedProducts = useMemo(() => {
     return filteredAndSortedProducts.slice(0, page * ITEMS_PER_PAGE);
@@ -197,7 +222,7 @@ const Shop = () => {
                       setSelectedCategory(category);
                       setIsMobileFiltersOpen(false);
                     }}
-                    className={`text-left w-full transition-colors ${selectedCategory === category ? 'text-primary font-medium' : 'text-neutral hover:text-primary'}`}
+                    className={`text-left w-full transition-colors ${normalizeCategory(canonicalCategory) === normalizeCategory(category) ? 'text-primary font-medium' : 'text-neutral hover:text-primary'}`}
                   >
                     {category}
                   </button>

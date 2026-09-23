@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase/firebase';
+import { supabase } from '../supabase/supabase';
 import toast from 'react-hot-toast';
 
 const useWishlistStore = create(
@@ -20,7 +19,7 @@ const useWishlistStore = create(
                 {
                   productId: product.id,
                   name: product.name,
-                  image: product.images?.[0] || '',
+                  image: product.images?.[0] || product.thumbnail || '',
                   price: product.price,
                   rating: product.rating || 0
                 },
@@ -57,47 +56,53 @@ const useWishlistStore = create(
       // Clear wishlist
       clearWishlist: () => set({ items: [] }),
 
-      // Sync from Firestore (call on login)
-      syncFromFirestore: async (userId) => {
+      // Sync from Supabase (call on login)
+      syncFromSupabase: async (userId) => {
         if (!userId) return;
         try {
-          const wishlistRef = doc(db, 'users', userId, 'wishlist', 'current');
-          const snap = await getDoc(wishlistRef);
-          
-          if (snap.exists()) {
-            const firestoreItems = snap.data().items || [];
-            
-            // Merge strategy: just take union
+          const { data, error } = await supabase
+            .from('wishlist_items')
+            .select('items')
+            .eq('user_id', userId)
+            .single();
+
+          if (data && data.items) {
+            const remoteItems = data.items || [];
             set((state) => {
               const localItems = [...state.items];
               const mergedMap = new Map();
-              
-              firestoreItems.forEach(item => mergedMap.set(item.productId, item));
+
+              remoteItems.forEach(item => mergedMap.set(item.productId, item));
               localItems.forEach(item => mergedMap.set(item.productId, item));
 
               return { items: Array.from(mergedMap.values()) };
             });
-            
-            await get().syncToFirestore(userId);
+
+            await get().syncToSupabase(userId);
           } else {
-            await get().syncToFirestore(userId);
+            await get().syncToSupabase(userId);
           }
         } catch (error) {
-          console.error("Error syncing wishlist from Firestore:", error);
+          console.error("Error syncing wishlist from Supabase:", error);
         }
       },
 
-      // Sync to Firestore
-      syncToFirestore: async (userId) => {
+      // Sync to Supabase
+      syncToSupabase: async (userId) => {
         if (!userId) return;
         try {
-          const wishlistRef = doc(db, 'users', userId, 'wishlist', 'current');
-          await setDoc(wishlistRef, {
-            items: get().items,
-            updatedAt: new Date().toISOString()
-          });
+          await supabase
+            .from('wishlist_items')
+            .upsert(
+              {
+                user_id: userId,
+                items: get().items,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'user_id' }
+            );
         } catch (error) {
-          console.error("Error syncing wishlist to Firestore:", error);
+          console.error("Error syncing wishlist to Supabase:", error);
         }
       }
     }),

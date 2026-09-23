@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
+import { supabase } from '../../supabase/supabase';
 import { formatCurrency, convertUsdToInr } from '../../utils/formatCurrency';
 import { Package, Plus, Pencil, Trash2, Search, Filter, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -15,10 +14,13 @@ const Products = () => {
 
   const fetchProducts = async () => {
     try {
-      const snapshot = await getDocs(collection(db, 'products'));
-      const productList = [];
-      snapshot.forEach(doc => productList.push({ id: doc.id, ...doc.data() }));
-      setProducts(productList);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProducts(data || []);
     } catch (error) {
       console.error("Error fetching products:", error);
       toast.error('Failed to load products');
@@ -34,7 +36,8 @@ const Products = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await deleteDoc(doc(db, 'products', id));
+        const { error } = await supabase.from('products').delete().eq('id', id);
+        if (error) throw error;
         toast.success('Product deleted successfully');
         fetchProducts();
       } catch (error) {

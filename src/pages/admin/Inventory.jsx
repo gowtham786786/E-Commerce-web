@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
+import { supabase } from '../../supabase/supabase';
 import { FileText, Search, AlertTriangle, ArrowUp, ArrowDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
@@ -13,10 +12,13 @@ const Inventory = () => {
 
   const fetchInventory = async () => {
     try {
-      const snapshot = await getDocs(collection(db, 'products'));
-      const productList = [];
-      snapshot.forEach(doc => productList.push({ id: doc.id, ...doc.data() }));
-      setProducts(productList);
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      setProducts(data || []);
     } catch (error) {
       console.error("Error fetching inventory:", error);
       toast.error('Failed to load inventory');
@@ -30,10 +32,14 @@ const Inventory = () => {
   }, []);
 
   const handleStockUpdate = async (id, currentStock, change) => {
-    const newStock = Math.max(0, currentStock + change);
+    const newStock = Math.max(0, (currentStock || 0) + change);
     setUpdatingId(id);
     try {
-      await updateDoc(doc(db, 'products', id), { stock: newStock });
+      const { error } = await supabase
+        .from('products')
+        .update({ stock: newStock })
+        .eq('id', id);
+      if (error) throw error;
       setProducts(products.map(p => p.id === id ? { ...p, stock: newStock } : p));
       toast.success('Stock updated');
     } catch (error) {
@@ -82,7 +88,7 @@ const Inventory = () => {
           </div>
           <div>
             <p className="text-sm font-medium text-neutral">Low Stock (&lt; 10)</p>
-            <h3 className="text-2xl font-bold text-neutral-dark">{products.filter(p => p.stock > 0 && p.stock < 10).length}</h3>
+            <h3 className="text-2xl font-bold text-neutral-dark">{products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) < 10).length}</h3>
           </div>
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-light flex items-center gap-4">
@@ -91,7 +97,7 @@ const Inventory = () => {
           </div>
           <div>
             <p className="text-sm font-medium text-neutral">Out of Stock</p>
-            <h3 className="text-2xl font-bold text-neutral-dark">{products.filter(p => p.stock === 0).length}</h3>
+            <h3 className="text-2xl font-bold text-neutral-dark">{products.filter(p => !p.stock || p.stock === 0).length}</h3>
           </div>
         </div>
       </div>
@@ -128,62 +134,65 @@ const Inventory = () => {
               </thead>
               <tbody className="divide-y divide-neutral-light">
                 {filteredProducts.length > 0 ? (
-                  filteredProducts.map(product => (
-                    <tr key={product.id} className="hover:bg-accent-light/50 transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-lg bg-neutral-light/50 overflow-hidden border border-neutral-light shrink-0">
-                            {product.thumbnail || product.images?.[0] ? (
-                              <img src={product.thumbnail || product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-neutral"><FileText className="w-4 h-4" /></div>
-                            )}
+                  filteredProducts.map(product => {
+                    const stock = product.stock || 0;
+                    return (
+                      <tr key={product.id} className="hover:bg-accent-light/50 transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-neutral-light/50 overflow-hidden border border-neutral-light shrink-0">
+                              {product.thumbnail || product.images?.[0] ? (
+                                <img src={product.thumbnail || product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-neutral"><FileText className="w-4 h-4" /></div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-neutral-dark line-clamp-1">{product.name}</p>
+                              <p className="text-xs text-neutral">{product.category}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-neutral-dark line-clamp-1">{product.name}</p>
-                            <p className="text-xs text-neutral">{product.category}</p>
+                        </td>
+                        <td className="p-4 text-sm text-neutral">{product.sku || 'N/A'}</td>
+                        <td className="p-4 text-center">
+                          {stock > 10 ? (
+                            <span className="inline-flex px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs font-bold">In Stock</span>
+                          ) : stock > 0 ? (
+                            <span className="inline-flex px-2 py-1 bg-amber-100 text-amber-700 rounded-md text-xs font-bold flex-nowrap items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> Low Stock
+                            </span>
+                          ) : (
+                            <span className="inline-flex px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs font-bold flex-nowrap items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> Out of Stock
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4 text-center text-lg font-bold text-neutral-dark">
+                          {stock}
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex justify-end gap-2 items-center">
+                            <button 
+                              onClick={() => handleStockUpdate(product.id, stock, -1)}
+                              disabled={updatingId === product.id || stock <= 0}
+                              className="w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors disabled:opacity-50"
+                              title="Decrease Stock"
+                            >
+                              <ArrowDown className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleStockUpdate(product.id, stock, 1)}
+                              disabled={updatingId === product.id}
+                              className="w-8 h-8 rounded-full bg-green-50 text-green-600 hover:bg-green-100 flex items-center justify-center transition-colors disabled:opacity-50"
+                              title="Increase Stock"
+                            >
+                              <ArrowUp className="w-4 h-4" />
+                            </button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm text-neutral">{product.sku || 'N/A'}</td>
-                      <td className="p-4 text-center">
-                        {product.stock > 10 ? (
-                          <span className="inline-flex px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs font-bold">In Stock</span>
-                        ) : product.stock > 0 ? (
-                          <span className="inline-flex px-2 py-1 bg-amber-100 text-amber-700 rounded-md text-xs font-bold flex-nowrap items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" /> Low Stock
-                          </span>
-                        ) : (
-                          <span className="inline-flex px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs font-bold flex-nowrap items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" /> Out of Stock
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-4 text-center text-lg font-bold text-neutral-dark">
-                        {product.stock}
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex justify-end gap-2 items-center">
-                           <button 
-                            onClick={() => handleStockUpdate(product.id, product.stock, -1)}
-                            disabled={updatingId === product.id || product.stock <= 0}
-                            className="w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors disabled:opacity-50"
-                            title="Decrease Stock"
-                          >
-                            <ArrowDown className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleStockUpdate(product.id, product.stock, 1)}
-                            disabled={updatingId === product.id}
-                            className="w-8 h-8 rounded-full bg-green-50 text-green-600 hover:bg-green-100 flex items-center justify-center transition-colors disabled:opacity-50"
-                            title="Increase Stock"
-                          >
-                            <ArrowUp className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan="5" className="p-12 text-center text-neutral">No products found.</td>

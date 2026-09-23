@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
-import { Star, Search, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { supabase } from '../../supabase/supabase';
+import { Star, Search, Trash2, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
@@ -12,17 +11,17 @@ const Reviews = () => {
 
   const fetchReviews = async () => {
     try {
-      // If a reviews collection exists, fetch from it. 
-      // If embedded in products, would need to map through all products. Assuming dedicated 'reviews' collection.
-      const q = query(collection(db, 'reviews'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const reviewList = [];
-      snapshot.forEach(doc => reviewList.push({ id: doc.id, ...doc.data() }));
-      setReviews(reviewList);
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*, products(name)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setReviews(data || []);
     } catch (error) {
       console.error("Error fetching reviews:", error);
-      // Fallback for demo purposes if collection doesn't exist yet
-      setLoading(false);
+      toast.error('Failed to load reviews');
     } finally {
       setLoading(false);
     }
@@ -32,21 +31,11 @@ const Reviews = () => {
     fetchReviews();
   }, []);
 
-  const handleStatusUpdate = async (id, newStatus) => {
-    try {
-      await updateDoc(doc(db, 'reviews', id), { status: newStatus });
-      toast.success(`Review ${newStatus}`);
-      setReviews(reviews.map(r => r.id === id ? { ...r, status: newStatus } : r));
-    } catch (error) {
-      console.error("Error updating review:", error);
-      toast.error('Failed to update review status');
-    }
-  };
-
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this review?')) {
       try {
-        await deleteDoc(doc(db, 'reviews', id));
+        const { error } = await supabase.from('reviews').delete().eq('id', id);
+        if (error) throw error;
         toast.success('Review deleted');
         setReviews(reviews.filter(r => r.id !== id));
       } catch (error) {
@@ -56,11 +45,13 @@ const Reviews = () => {
     }
   };
 
-  const filteredReviews = reviews.filter(r => 
-    r.comment?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    r.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.productName?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredReviews = reviews.filter(r => {
+    const comment = (r.comment || '').toLowerCase();
+    const user = (r.user_name || r.userName || '').toLowerCase();
+    const prod = (r.products?.name || r.product_name || '').toLowerCase();
+    const query = searchQuery.toLowerCase();
+    return comment.includes(query) || user.includes(query) || prod.includes(query);
+  });
 
   return (
     <motion.div
@@ -104,7 +95,7 @@ const Reviews = () => {
                   <th className="p-4 font-semibold whitespace-nowrap">Customer & Product</th>
                   <th className="p-4 font-semibold whitespace-nowrap">Rating</th>
                   <th className="p-4 font-semibold">Review</th>
-                  <th className="p-4 font-semibold whitespace-nowrap text-center">Status</th>
+                  <th className="p-4 font-semibold whitespace-nowrap">Date</th>
                   <th className="p-4 font-semibold whitespace-nowrap text-right">Actions</th>
                 </tr>
               </thead>
@@ -113,52 +104,28 @@ const Reviews = () => {
                   filteredReviews.map(review => (
                     <tr key={review.id} className="hover:bg-accent-light/50 transition-colors group">
                       <td className="p-4">
-                        <p className="text-sm font-bold text-neutral-dark">{review.userName || 'Anonymous'}</p>
-                        <p className="text-xs text-primary font-medium mt-1">On: {review.productName || 'Unknown Product'}</p>
+                        <p className="text-sm font-bold text-neutral-dark">{review.user_name || review.userName || 'Customer'}</p>
+                        <p className="text-xs text-primary font-medium mt-1">On: {review.products?.name || review.product_name || 'Product'}</p>
                       </td>
                       <td className="p-4">
                         <div className="flex text-yellow-400">
                           {[...Array(5)].map((_, i) => (
-                            <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-current' : 'text-neutral-light'}`} />
+                            <Star key={i} className={`w-4 h-4 ${i < (review.rating || 5) ? 'fill-current' : 'text-neutral-light'}`} />
                           ))}
                         </div>
                       </td>
                       <td className="p-4 text-sm text-neutral-dark max-w-md">
-                        <p className="line-clamp-2">{review.comment}</p>
+                        <p className="line-clamp-2">{review.comment || 'No comment provided.'}</p>
                       </td>
-                      <td className="p-4 text-center">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
-                          review.status === 'approved' ? 'bg-green-100 text-green-700' : 
-                          review.status === 'rejected' ? 'bg-red-100 text-red-700' : 
-                          'bg-amber-100 text-amber-700'
-                        }`}>
-                          {review.status || 'pending'}
-                        </span>
+                      <td className="p-4 text-sm text-neutral whitespace-nowrap">
+                        {review.created_at ? new Date(review.created_at).toLocaleDateString() : 'N/A'}
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {review.status !== 'approved' && (
-                            <button 
-                              onClick={() => handleStatusUpdate(review.id, 'approved')}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                              title="Approve"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                          )}
-                          {review.status !== 'rejected' && (
-                            <button 
-                              onClick={() => handleStatusUpdate(review.id, 'rejected')}
-                              className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                              title="Reject"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          )}
                           <button 
                             onClick={() => handleDelete(review.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete"
+                            title="Delete Review"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

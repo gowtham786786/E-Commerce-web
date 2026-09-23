@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/firebase';
+import { supabase } from '../supabase/supabase';
 
-// Global cache to prevent refetching 1000 items on every component mount
+// Global cache to prevent refetching items on every component mount
 let cachedProducts = null;
 let isFetching = false;
 let fetchPromise = null;
+
+const mapProduct = (p) => ({
+  ...p,
+  subCategory: p.sub_category || p.subCategory || '',
+  bestSeller: p.best_seller ?? p.bestSeller ?? false,
+  reviewCount: p.review_count ?? p.reviewCount ?? 0,
+  availabilityStatus: p.availability_status || p.availabilityStatus || 'In Stock',
+  images: Array.isArray(p.images) ? p.images : [],
+  colors: Array.isArray(p.colors) ? p.colors : [],
+  sizes: Array.isArray(p.sizes) ? p.sizes : [],
+  tags: Array.isArray(p.tags) ? p.tags : []
+});
 
 export const useProducts = () => {
   const [products, setProducts] = useState(cachedProducts || []);
@@ -38,34 +49,22 @@ export const useProducts = () => {
 
     fetchPromise = (async () => {
       try {
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Firestore fetch timeout')), 8000); // 8s timeout for 1000 items
-        });
+        const { data, error: sbError } = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-        const queryPromise = getDocs(collection(db, "products"));
-        const querySnapshot = await Promise.race([queryPromise, timeoutPromise]);
+        if (sbError) throw sbError;
 
-        let finalProducts = [];
-        if (!querySnapshot.empty) {
-          finalProducts = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          console.log(`[useProducts] Fetched ${finalProducts.length} products from Firestore.`);
-        } else {
-          console.log("[useProducts] Firestore empty.");
-        }
-        
+        const finalProducts = (data || []).map(mapProduct);
+        console.log(`[useProducts] Fetched ${finalProducts.length} products from Supabase.`);
+
         cachedProducts = finalProducts;
         return finalProducts;
       } catch (err) {
-        console.error("[useProducts] Error fetching products:", err);
-        if (err.message === 'Firestore fetch timeout' || err.code === 'permission-denied') {
-          cachedProducts = [];
-          return [];
-        } else {
-          throw err;
-        }
+        console.error('[useProducts] Error fetching products from Supabase:', err);
+        setError(err);
+        return [];
       } finally {
         isFetching = false;
       }

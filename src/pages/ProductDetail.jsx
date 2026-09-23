@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { db } from '../firebase/firebase';
+import { supabase } from '../supabase/supabase';
 import { ShoppingCart, Heart, Star, ChevronRight, Minus, Plus, Truck, ArrowLeft, ImageOff } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import useCartStore from '../store/useCartStore';
@@ -33,31 +32,35 @@ const ProductDetail = () => {
     const fetchProductDetails = async () => {
       setLoading(true);
       try {
-        const docRef = doc(db, 'products', id);
-        const docSnap = await getDoc(docRef);
+        const { data: productData, error: prodErr } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-        if (docSnap.exists()) {
-          const productData = { id: docSnap.id, ...docSnap.data() };
-          setProduct(productData);
+        if (prodErr || !productData) {
+          console.log("No such product!", prodErr);
+          setProduct(null);
+        } else {
+          const mapped = {
+            ...productData,
+            subCategory: productData.sub_category || productData.subCategory,
+            bestSeller: productData.best_seller ?? productData.bestSeller,
+            reviewCount: productData.review_count ?? productData.reviewCount,
+            availabilityStatus: productData.availability_status || productData.availabilityStatus,
+            images: Array.isArray(productData.images) ? productData.images : []
+          };
+          setProduct(mapped);
 
           // Fetch related products
-          const productsRef = collection(db, 'products');
-          const q = query(
-            productsRef,
-            where('category', '==', productData.category),
-            limit(5)
-          );
+          const { data: relatedData } = await supabase
+            .from('products')
+            .select('*')
+            .eq('category', mapped.category)
+            .neq('id', mapped.id)
+            .limit(4);
 
-          const relatedSnap = await getDocs(q);
-          const related = relatedSnap.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(p => p.id !== productData.id)
-            .slice(0, 4); // ensure max 4
-
-          setRelatedProducts(related);
-        } else {
-          console.log("No such product!");
-          setProduct(null);
+          setRelatedProducts(relatedData || []);
         }
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -111,7 +114,7 @@ const ProductDetail = () => {
         <ChevronRight className="w-4 h-4 mx-2" />
         <Link to="/shop" className="hover:text-primary transition-colors">Shop</Link>
         <ChevronRight className="w-4 h-4 mx-2" />
-        <Link to={`/shop?category=${product.category}`} className="hover:text-primary transition-colors">
+        <Link to={`/shop?category=${encodeURIComponent(product.category)}`} className="hover:text-primary transition-colors">
           {product.category}
         </Link>
         <ChevronRight className="w-4 h-4 mx-2" />
@@ -262,7 +265,7 @@ const ProductDetail = () => {
         <div className="pt-12 border-t border-neutral-light">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-bold text-neutral-dark">You May Also Like</h2>
-            <Link to={`/shop?category=${product.category}`} className="text-primary hover:underline font-medium flex items-center gap-1">
+            <Link to={`/shop?category=${encodeURIComponent(product.category)}`} className="text-primary hover:underline font-medium flex items-center gap-1">
               View All <ChevronRight className="w-4 h-4" />
             </Link>
           </div>

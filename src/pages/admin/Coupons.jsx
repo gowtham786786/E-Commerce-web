@@ -1,9 +1,37 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
 import { Tag, Plus, Search, Pencil, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
+
+const INITIAL_COUPONS = [
+  {
+    id: 'cpn-1',
+    code: 'WELCOME50',
+    discount: 50,
+    minimumOrder: 999,
+    usageLimit: 100,
+    expiry: '2026-12-31',
+    status: 'enabled'
+  },
+  {
+    id: 'cpn-2',
+    code: 'FESTIVE25',
+    discount: 25,
+    minimumOrder: 499,
+    usageLimit: 500,
+    expiry: '2026-11-30',
+    status: 'enabled'
+  },
+  {
+    id: 'cpn-3',
+    code: 'SUMMER10',
+    discount: 10,
+    minimumOrder: 299,
+    usageLimit: 0,
+    expiry: '2026-08-31',
+    status: 'enabled'
+  }
+];
 
 const Coupons = () => {
   const [coupons, setCoupons] = useState([]);
@@ -18,14 +46,18 @@ const Coupons = () => {
     code: '', discount: '', expiry: '', usageLimit: '', minimumOrder: '', status: 'enabled'
   });
 
-  const fetchCoupons = async () => {
+  const fetchCoupons = () => {
     try {
-      const snapshot = await getDocs(collection(db, 'coupons'));
-      const list = [];
-      snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-      setCoupons(list);
+      const saved = localStorage.getItem('shopmate_admin_coupons');
+      if (saved) {
+        setCoupons(JSON.parse(saved));
+      } else {
+        setCoupons(INITIAL_COUPONS);
+        localStorage.setItem('shopmate_admin_coupons', JSON.stringify(INITIAL_COUPONS));
+      }
     } catch (error) {
-      console.error("Error fetching coupons:", error);
+      console.error("Error loading coupons:", error);
+      setCoupons(INITIAL_COUPONS);
     } finally {
       setLoading(false);
     }
@@ -42,8 +74,8 @@ const Coupons = () => {
         code: coupon.code,
         discount: coupon.discount.toString(),
         expiry: coupon.expiry,
-        usageLimit: coupon.usageLimit.toString(),
-        minimumOrder: coupon.minimumOrder.toString(),
+        usageLimit: coupon.usageLimit ? coupon.usageLimit.toString() : '0',
+        minimumOrder: coupon.minimumOrder ? coupon.minimumOrder.toString() : '0',
         status: coupon.status || 'enabled'
       });
     } else {
@@ -58,15 +90,12 @@ const Coupons = () => {
     setEditingId(null);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     if (window.confirm('Delete this coupon?')) {
-      try {
-        await deleteDoc(doc(db, 'coupons', id));
-        toast.success('Deleted successfully');
-        fetchCoupons();
-      } catch (error) {
-        toast.error('Failed to delete');
-      }
+      const updated = coupons.filter(c => c.id !== id);
+      setCoupons(updated);
+      localStorage.setItem('shopmate_admin_coupons', JSON.stringify(updated));
+      toast.success('Deleted successfully');
     }
   };
 
@@ -81,21 +110,22 @@ const Coupons = () => {
         expiry: formData.expiry,
         usageLimit: parseInt(formData.usageLimit) || 0,
         minimumOrder: parseFloat(formData.minimumOrder) || 0,
-        status: formData.status,
-        updatedAt: serverTimestamp()
+        status: formData.status
       };
 
+      let updated;
       if (editingId) {
-        await updateDoc(doc(db, 'coupons', editingId), couponData);
+        updated = coupons.map(c => c.id === editingId ? { ...c, ...couponData } : c);
         toast.success('Coupon updated!');
       } else {
-        couponData.createdAt = serverTimestamp();
-        await addDoc(collection(db, 'coupons'), couponData);
+        const newCoupon = { id: `cpn-${Date.now()}`, ...couponData };
+        updated = [newCoupon, ...coupons];
         toast.success('Coupon created!');
       }
       
+      setCoupons(updated);
+      localStorage.setItem('shopmate_admin_coupons', JSON.stringify(updated));
       closeModal();
-      fetchCoupons();
     } catch (error) {
       console.error("Error saving coupon:", error);
       toast.error('Failed to save coupon');
@@ -227,7 +257,7 @@ const Coupons = () => {
                 <div>
                   <label className="block text-sm font-medium text-neutral-dark mb-1">Coupon Code *</label>
                   <input 
-                    type="text" required uppercase
+                    type="text" required
                     value={formData.code} onChange={e => setFormData({...formData, code: e.target.value.toUpperCase()})}
                     className="w-full px-4 py-2.5 rounded-xl border border-neutral-light focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-bold tracking-wider"
                     placeholder="e.g. SUMMER50"

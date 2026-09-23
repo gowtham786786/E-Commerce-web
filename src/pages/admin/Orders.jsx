@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
+import { supabase } from '../../supabase/supabase';
 import { formatCurrency, convertUsdToInr } from '../../utils/formatCurrency';
 import { ShoppingCart, Search, Filter, Eye, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -23,10 +22,13 @@ const Orders = () => {
 
   const fetchOrders = async () => {
     try {
-      const snapshot = await getDocs(collection(db, 'orders'));
-      const orderList = [];
-      snapshot.forEach(doc => orderList.push({ id: doc.id, ...doc.data() }));
-      setOrders(orderList.sort((a, b) => b.createdAt?.toDate() - a.createdAt?.toDate()));
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setOrders(data || []);
     } catch (error) {
       console.error("Error fetching orders:", error);
       toast.error('Failed to load orders');
@@ -42,7 +44,12 @@ const Orders = () => {
   const handleStatusChange = async (orderId, newStatus) => {
     setUpdatingId(orderId);
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      if (error) throw error;
       toast.success(`Order status updated to ${newStatus}`);
       setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     } catch (error) {

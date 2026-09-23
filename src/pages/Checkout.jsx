@@ -3,8 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import useCartStore from '../store/useCartStore';
 import { formatCurrency, convertUsdToInr } from '../utils/formatCurrency';
-import { db } from '../firebase/firebase';
-import { doc, collection, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { supabase } from '../supabase/supabase';
 import { CheckCircle2, ChevronRight, CreditCard, Banknote, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -77,28 +76,37 @@ const Checkout = () => {
     setError('');
 
     try {
-      // 1. Create order doc
+      const sub = getSubtotal();
+      const ship = sub > (499 / 93) || sub === 0 ? 0 : (50 / 93);
+      const tax = sub * 0.18;
+      const tot = sub + ship + tax;
+
       const orderData = {
-        userId: currentUser.uid,
+        user_id: currentUser?.id || currentUser?.uid || null,
         items,
-        shippingAddress: address,
-        paymentMethod,
-        subtotal: getSubtotal(),
-        shipping: getSubtotal() > (499 / 93) || getSubtotal() === 0 ? 0 : (50 / 93),
-        tax: getSubtotal() * 0.18,
-        total: getSubtotal() + (getSubtotal() > (499 / 93) || getSubtotal() === 0 ? 0 : (50 / 93)) + (getSubtotal() * 0.18),
-        status: 'pending',
-        createdAt: serverTimestamp()
+        shipping_address: address,
+        payment_method: paymentMethod,
+        subtotal: sub,
+        shipping: ship,
+        tax: tax,
+        total: tot,
+        status: 'pending'
       };
 
-      const docRef = await addDoc(collection(db, 'orders'), orderData);
+      const { data: newOrder, error: orderErr } = await supabase
+        .from('orders')
+        .insert(orderData)
+        .select()
+        .single();
+
+      if (orderErr) throw orderErr;
 
       // 2. Clear Cart (Zustand)
       clearCart();
 
       // 3. Navigate to confirmation
       toast.success('Order placed successfully!');
-      navigate('/order-confirmation', { state: { orderId: docRef.id } });
+      navigate('/order-confirmation', { state: { orderId: newOrder?.id } });
 
     } catch (err) {
       console.error("Checkout error:", err);

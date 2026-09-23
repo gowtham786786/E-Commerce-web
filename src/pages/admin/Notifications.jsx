@@ -1,9 +1,24 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, serverTimestamp, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
 import { Bell, Send, Trash2, Gift, AlertTriangle, Zap, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
+
+const INITIAL_NOTIFICATIONS = [
+  {
+    id: 'notif-1',
+    type: 'offer',
+    title: 'Weekend Mega Savings - Up to 60% Off!',
+    message: 'Grab premium electronics and accessories at unbelievable prices this weekend only.',
+    createdAt: new Date(Date.now() - 3600000 * 2).toISOString()
+  },
+  {
+    id: 'notif-2',
+    type: 'flash_sale',
+    title: 'Flash Sale: Top Selling Watches',
+    message: 'Exclusive 24-hour deals on Fastrack, Casio, and Titan collections.',
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
+  }
+];
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -16,15 +31,18 @@ const Notifications = () => {
     type: 'offer' // offer, festival, flash_sale, maintenance, order
   });
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = () => {
     try {
-      const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const list = [];
-      snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-      setNotifications(list);
+      const saved = localStorage.getItem('shopmate_admin_notifications');
+      if (saved) {
+        setNotifications(JSON.parse(saved));
+      } else {
+        setNotifications(INITIAL_NOTIFICATIONS);
+        localStorage.setItem('shopmate_admin_notifications', JSON.stringify(INITIAL_NOTIFICATIONS));
+      }
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+      console.error("Error loading notifications:", error);
+      setNotifications(INITIAL_NOTIFICATIONS);
     } finally {
       setLoading(false);
     }
@@ -38,13 +56,16 @@ const Notifications = () => {
     e.preventDefault();
     setSending(true);
     try {
-      await addDoc(collection(db, 'notifications'), {
+      const newNotif = {
+        id: `notif-${Date.now()}`,
         ...formData,
-        createdAt: serverTimestamp()
-      });
-      toast.success('Notification sent successfully!');
+        createdAt: new Date().toISOString()
+      };
+      const updated = [newNotif, ...notifications];
+      setNotifications(updated);
+      localStorage.setItem('shopmate_admin_notifications', JSON.stringify(updated));
+      toast.success('Notification broadcasted successfully!');
       setFormData({ title: '', message: '', type: 'offer' });
-      fetchNotifications();
     } catch (error) {
       console.error("Error sending notification:", error);
       toast.error('Failed to send notification');
@@ -53,15 +74,12 @@ const Notifications = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     if (window.confirm('Delete this notification?')) {
-      try {
-        await deleteDoc(doc(db, 'notifications', id));
-        toast.success('Deleted successfully');
-        fetchNotifications();
-      } catch (error) {
-        toast.error('Failed to delete');
-      }
+      const updated = notifications.filter(n => n.id !== id);
+      setNotifications(updated);
+      localStorage.setItem('shopmate_admin_notifications', JSON.stringify(updated));
+      toast.success('Deleted successfully');
     }
   };
 
@@ -166,7 +184,7 @@ const Notifications = () => {
                       <div className="flex justify-between items-start">
                         <h3 className="font-bold text-neutral-dark">{notif.title}</h3>
                         <span className="text-xs text-neutral whitespace-nowrap ml-4">
-                          {notif.createdAt?.toDate ? notif.createdAt.toDate().toLocaleString() : 'Just now'}
+                          {notif.createdAt ? new Date(notif.createdAt).toLocaleString() : 'Just now'}
                         </span>
                       </div>
                       <p className="text-sm text-neutral mt-1">{notif.message}</p>

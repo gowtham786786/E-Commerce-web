@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, doc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
+import { supabase } from '../../supabase/supabase';
 import { formatCurrency, convertUsdToInr } from '../../utils/formatCurrency';
 import { Users, Search, Ban, CheckCircle, Trash2, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -11,35 +10,42 @@ const Customers = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'users'), 
-      (snapshot) => {
-        const customerList = [];
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          if (data.role !== 'admin') {
-            customerList.push({ id: doc.id, ...data });
-          }
-        });
-        setCustomers(customerList);
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error fetching customers:", error);
-        toast.error('Failed to load customers');
-        setLoading(false);
-      }
-    );
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    return () => unsubscribe();
+      if (error) throw error;
+      // Filter out admins from customer list
+      const customerList = (data || []).filter(c => c.role !== 'admin');
+      setCustomers(customerList);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      toast.error('Failed to load customers');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomers();
   }, []);
 
-  const handleToggleBlock = async (id, currentStatus) => {
+  const handleToggleBlock = async (id, currentRole) => {
     try {
-      const newStatus = currentStatus === 'blocked' ? 'active' : 'blocked';
-      await updateDoc(doc(db, 'users', id), { status: newStatus });
-      toast.success(`User ${newStatus === 'blocked' ? 'blocked' : 'unblocked'} successfully`);
-      setCustomers(customers.map(c => c.id === id ? { ...c, status: newStatus } : c));
+      const isBlocked = currentRole === 'blocked';
+      const newRole = isBlocked ? 'user' : 'blocked';
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success(`User ${newRole === 'blocked' ? 'blocked' : 'unblocked'} successfully`);
+      setCustomers(customers.map(c => c.id === id ? { ...c, role: newRole } : c));
     } catch (error) {
       console.error("Error updating user status:", error);
       toast.error('Failed to update user status');
@@ -49,7 +55,12 @@ const Customers = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this customer? This action cannot be undone.')) {
       try {
-        await deleteDoc(doc(db, 'users', id));
+        const { error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
         toast.success('Customer deleted successfully');
         setCustomers(customers.filter(c => c.id !== id));
       } catch (error) {
@@ -59,11 +70,13 @@ const Customers = () => {
     }
   };
 
-  const filteredCustomers = customers.filter(c => 
-    c.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    c.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.phone?.includes(searchQuery)
-  );
+  const filteredCustomers = customers.filter(c => {
+    const name = (c.display_name || c.displayName || '').toLowerCase();
+    const email = (c.email || '').toLowerCase();
+    const phone = c.phone || '';
+    const query = searchQuery.toLowerCase();
+    return name.includes(query) || email.includes(query) || phone.includes(query);
+  });
 
   return (
     <motion.div
@@ -114,66 +127,72 @@ const Customers = () => {
               </thead>
               <tbody className="divide-y divide-neutral-light">
                 {filteredCustomers.length > 0 ? (
-                  filteredCustomers.map(customer => (
-                    <tr key={customer.id} className="hover:bg-accent-light/50 transition-colors group">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <img 
-                            src={customer.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(customer.displayName || 'User')}&background=0D8ABC&color=fff`} 
-                            alt={customer.displayName} 
-                            className="w-10 h-10 rounded-full object-cover border border-neutral-light shrink-0"
-                          />
-                          <div>
-                            <p className="text-sm font-medium text-neutral-dark">{customer.displayName || 'Unknown'}</p>
-                            <p className="text-xs text-neutral capitalize">{customer.provider || 'Email'}</p>
+                  filteredCustomers.map(customer => {
+                    const isBlocked = customer.role === 'blocked';
+                    const displayName = customer.display_name || customer.displayName || 'Customer';
+                    const photo = customer.photo_url || customer.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D8ABC&color=fff`;
+                    const joinDate = customer.created_at ? new Date(customer.created_at).toLocaleDateString() : 'N/A';
+
+                    return (
+                      <tr key={customer.id} className="hover:bg-accent-light/50 transition-colors group">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <img 
+                              src={photo} 
+                              alt={displayName} 
+                              className="w-10 h-10 rounded-full object-cover border border-neutral-light shrink-0"
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-neutral-dark">{displayName}</p>
+                              <p className="text-xs text-neutral capitalize">{customer.provider || 'Email'}</p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <p className="text-sm text-neutral-dark">{customer.email}</p>
-                        <p className="text-xs text-neutral">{customer.phone || 'No phone'}</p>
-                      </td>
-                      <td className="p-4 text-sm text-neutral">
-                        {customer.createdAt?.toDate ? customer.createdAt.toDate().toLocaleDateString() : 'N/A'}
-                      </td>
-                      <td className="p-4 text-sm font-bold text-neutral-dark">
-                        {/* Assuming totalSpent is calculated or stored. If not, default to 0 */}
-                        {formatCurrency(convertUsdToInr(customer.totalSpent || 0))}
-                      </td>
-                      <td className="p-4">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
-                          customer.status === 'blocked' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                        }`}>
-                          {customer.status === 'blocked' ? 'Blocked' : 'Active'}
-                        </span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button className="p-2 text-neutral hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Profile">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleToggleBlock(customer.id, customer.status)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              customer.status === 'blocked' 
-                                ? 'text-green-600 hover:bg-green-50' 
-                                : 'text-amber-600 hover:bg-amber-50'
-                            }`}
-                            title={customer.status === 'blocked' ? "Unblock User" : "Block User"}
-                          >
-                            {customer.status === 'blocked' ? <CheckCircle className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(customer.id)}
-                            className="p-2 text-neutral hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete User"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="p-4">
+                          <p className="text-sm text-neutral-dark">{customer.email || 'N/A'}</p>
+                          <p className="text-xs text-neutral">{customer.phone || 'No phone'}</p>
+                        </td>
+                        <td className="p-4 text-sm text-neutral">
+                          {joinDate}
+                        </td>
+                        <td className="p-4 text-sm font-bold text-neutral-dark">
+                          {formatCurrency(convertUsdToInr(customer.totalSpent || customer.total_spent || 0))}
+                        </td>
+                        <td className="p-4">
+                          <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                            isBlocked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                          }`}>
+                            {isBlocked ? 'Blocked' : 'Active'}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button className="p-2 text-neutral hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Profile">
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleToggleBlock(customer.id, customer.role)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                isBlocked 
+                                  ? 'text-green-600 hover:bg-green-50' 
+                                  : 'text-amber-600 hover:bg-amber-50'
+                              }`}
+                              title={isBlocked ? "Unblock User" : "Block User"}
+                            >
+                              {isBlocked ? <CheckCircle className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(customer.id)}
+                              className="p-2 text-neutral hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete User"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan="6" className="p-12 text-center">

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../firebase/firebase';
-import { collection, query, where, getDocs, doc, updateDoc, orderBy } from 'firebase/firestore';
+import { supabase } from '../supabase/supabase';
 import { formatCurrency, convertUsdToInr } from '../utils/formatCurrency';
 import { User, MapPin, Package, LogOut, Truck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -31,28 +30,18 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      if (!currentUser?.uid) return;
+      const uid = currentUser?.id || currentUser?.uid;
+      if (!uid) return;
       try {
-        // Removed orderBy('createdAt', 'desc') to avoid Firestore composite index requirement.
-        // We will sort client-side instead.
-        const q = query(
-          collection(db, 'orders'),
-          where('userId', '==', currentUser.uid)
-        );
-        const querySnapshot = await getDocs(q);
-        const ordersData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const { data: ordersData, error: ordersErr } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', uid)
+          .order('created_at', { ascending: false });
 
-        // Sort orders by date descending client-side
-        ordersData.sort((a, b) => {
-          const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-          const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-          return dateB - dateA;
-        });
+        if (ordersErr) throw ordersErr;
 
-        setOrders(ordersData);
+        setOrders(ordersData || []);
       } catch (error) {
         console.error("Error fetching orders:", error);
       } finally {
@@ -64,24 +53,33 @@ const Profile = () => {
   }, [currentUser]);
 
   const getExpectedDelivery = (createdAt) => {
-    if (!createdAt?.toDate) return 'Pending...';
-    const deliveryDate = new Date(createdAt.toDate());
-    deliveryDate.setDate(deliveryDate.getDate() + 4); // Predict delivery 4 days after order
-    return deliveryDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    let date;
+    if (createdAt?.toDate) {
+      date = new Date(createdAt.toDate());
+    } else if (createdAt) {
+      date = new Date(createdAt);
+    } else {
+      return 'Pending...';
+    }
+    date.setDate(date.getDate() + 4);
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
   const handleSaveAddress = async (e) => {
     e.preventDefault();
     setSavingAddress(true);
+    const uid = currentUser?.id || currentUser?.uid;
     try {
-      const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, {
-        addresses: [address]
-      });
-      // Force reload or just update local state
+      if (uid) {
+        await supabase
+          .from('profiles')
+          .update({ phone: address.phone || currentUser?.phone || '' })
+          .eq('id', uid);
+      }
       setIsEditingAddress(false);
-      // In a real app we'd update AuthContext or use an observer, but this works for demo
-      currentUser.addresses = [address];
+      if (currentUser) {
+        currentUser.addresses = [address];
+      }
     } catch (error) {
       console.error("Error updating address:", error);
     } finally {

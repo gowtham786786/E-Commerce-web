@@ -1,41 +1,38 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
 import { Settings as SettingsIcon, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
+const DEFAULT_SETTINGS = {
+  websiteName: 'ShopMate',
+  email: 'support@shopmate.com',
+  phone: '+91 98765 43210',
+  address: '123 Tech Park, Bangalore, India',
+  gstNumber: '29AAAAA0000A1Z5',
+  taxRate: '18',
+  deliveryCharge: '50',
+  currency: 'INR',
+  facebook: 'https://facebook.com',
+  instagram: 'https://instagram.com',
+  twitter: 'https://twitter.com'
+};
+
 const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState({
-    websiteName: 'ShopMate',
-    email: 'support@shopmate.com',
-    phone: '',
-    address: '',
-    gstNumber: '',
-    taxRate: '18',
-    deliveryCharge: '50',
-    currency: 'INR',
-    facebook: '',
-    instagram: '',
-    twitter: ''
-  });
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const docSnap = await getDoc(doc(db, 'settings', 'general'));
-        if (docSnap.exists()) {
-          setSettings({ ...settings, ...docSnap.data() });
-        }
-      } catch (error) {
-        console.error("Error fetching settings:", error);
-      } finally {
-        setLoading(false);
+    try {
+      const saved = localStorage.getItem('shopmate_admin_settings');
+      if (saved) {
+        setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(saved) });
       }
-    };
-    fetchSettings();
+    } catch (error) {
+      console.error("Error loading settings:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const handleChange = (e) => {
@@ -46,7 +43,9 @@ const Settings = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      await setDoc(doc(db, 'settings', 'general'), settings);
+      localStorage.setItem('shopmate_admin_settings', JSON.stringify(settings));
+      // Artificial delay for smooth UX feedback
+      await new Promise(r => setTimeout(r, 400));
       toast.success('Settings updated successfully!');
     } catch (error) {
       console.error("Error saving settings:", error);

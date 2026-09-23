@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../../firebase/firebase';
+import { supabase } from '../../supabase/supabase';
 import { Layers, Plus, Pencil, Trash2, X, Image as ImageIcon, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
@@ -20,10 +18,13 @@ const Categories = () => {
 
   const fetchCategories = async () => {
     try {
-      const snapshot = await getDocs(collection(db, 'categories'));
-      const catList = [];
-      snapshot.forEach(doc => catList.push({ id: doc.id, ...doc.data() }));
-      setCategories(catList);
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCategories(data || []);
     } catch (error) {
       console.error("Error fetching categories:", error);
       toast.error('Failed to load categories');
@@ -57,7 +58,8 @@ const Categories = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this category?')) {
       try {
-        await deleteDoc(doc(db, 'categories', id));
+        const { error } = await supabase.from('categories').delete().eq('id', id);
+        if (error) throw error;
         toast.success('Category deleted successfully');
         fetchCategories();
       } catch (error) {
@@ -74,25 +76,34 @@ const Categories = () => {
     try {
       let imageUrl = null;
       if (imageFile) {
-        const fileRef = ref(storage, `categories/${Date.now()}_${imageFile.name}`);
-        const snapshot = await uploadBytes(fileRef, imageFile);
-        imageUrl = await getDownloadURL(snapshot.ref);
+        const cleanName = `cat_${Date.now()}_${imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '')}`;
+        const { error: uploadErr } = await supabase.storage.from('products').upload(cleanName, imageFile);
+        if (!uploadErr) {
+          const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(cleanName);
+          imageUrl = publicUrl;
+        }
       }
 
       const categoryData = {
         name: formData.name,
-        status: formData.status,
-        updatedAt: serverTimestamp()
+        slug: formData.name.toLowerCase().replace(/\s+/g, '-'),
+        status: formData.status
       };
 
       if (editingId) {
         if (imageUrl) categoryData.image = imageUrl;
-        await updateDoc(doc(db, 'categories', editingId), categoryData);
+        const { error } = await supabase
+          .from('categories')
+          .update(categoryData)
+          .eq('id', editingId);
+        if (error) throw error;
         toast.success('Category updated successfully');
       } else {
         categoryData.image = imageUrl;
-        categoryData.createdAt = serverTimestamp();
-        await addDoc(collection(db, 'categories'), categoryData);
+        categoryData.id = `cat-${Date.now()}`;
+        categoryData.created_at = new Date().toISOString();
+        const { error } = await supabase.from('categories').insert(categoryData);
+        if (error) throw error;
         toast.success('Category added successfully');
       }
       

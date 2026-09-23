@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Upload, X, Save, ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { db, storage } from '../../firebase/firebase';
-import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { supabase } from '../../supabase/supabase';
 import { convertUsdToInr, USD_TO_INR } from '../../utils/formatCurrency';
 import toast from 'react-hot-toast';
 
@@ -39,29 +37,18 @@ const ProductForm = ({ initialData = null, isEditing = false, productId = null }
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        // Fetch from categories collection
-        const catSnap = await getDocs(collection(db, 'categories'));
-        let cats = [];
-        catSnap.forEach(doc => cats.push(doc.data().name));
-
-        // Fetch distinct categories from products to ensure all existing categories are available
-        const prodSnap = await getDocs(collection(db, 'products'));
-        prodSnap.forEach(doc => {
-          const cat = doc.data().category;
-          if (cat && !cats.includes(cat)) {
-            cats.push(cat);
-          }
-        });
+        const { data: catData } = await supabase.from('categories').select('name');
+        let cats = (catData || []).map(c => c.name);
 
         // Add defaults if they don't exist
-        const defaults = ['Electronics', 'Fashion', 'Home', 'Beauty', 'Sports', 'Toys', 'Books', 'Groceries', 'Accessories'];
+        const defaults = ['Electronics', 'Fashion', 'Home & Kitchen', 'Beauty', 'Sports', 'Accessories'];
         defaults.forEach(cat => {
           if (!cats.includes(cat)) cats.push(cat);
         });
 
         setCategories(cats.sort());
       } catch (error) {
-        console.error("Failed to fetch categories");
+        console.error("Failed to fetch categories", error);
       }
     };
     fetchCategories();
@@ -107,47 +94,68 @@ const ProductForm = ({ initialData = null, isEditing = false, productId = null }
 
       // Upload Thumbnail
       if (thumbnailFile) {
-        const thumbRef = ref(storage, `products/thumb_${Date.now()}_${thumbnailFile.name}`);
-        const snapshot = await uploadBytes(thumbRef, thumbnailFile);
-        thumbnailUrl = await getDownloadURL(snapshot.ref);
+        const cleanName = `${Date.now()}_thumb_${thumbnailFile.name.replace(/[^a-zA-Z0-9._-]/g, '')}`;
+        const { error: uploadErr } = await supabase.storage.from('products').upload(cleanName, thumbnailFile);
+        if (!uploadErr) {
+          const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(cleanName);
+          thumbnailUrl = publicUrl;
+        }
       }
 
       // Upload Multiple Images
       if (imageFiles.length > 0) {
         for (const file of imageFiles) {
-          const fileRef = ref(storage, `products/${Date.now()}_${file.name}`);
-          const snapshot = await uploadBytes(fileRef, file);
-          const url = await getDownloadURL(snapshot.ref);
-          imageUrls.push(url);
+          const cleanName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '')}`;
+          const { error: uploadErr } = await supabase.storage.from('products').upload(cleanName, file);
+          if (!uploadErr) {
+            const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(cleanName);
+            imageUrls.push(publicUrl);
+          }
         }
       }
 
-        const parsedStock = parseInt(formData.stock) || 0;
-        let derivedStatus = 'Out of Stock';
-        if (parsedStock > 10) derivedStatus = 'In Stock';
-        else if (parsedStock > 0) derivedStatus = 'Low Stock';
+      const parsedStock = parseInt(formData.stock) || 0;
+      let derivedStatus = 'Out of Stock';
+      if (parsedStock > 10) derivedStatus = 'In Stock';
+      else if (parsedStock > 0) derivedStatus = 'Low Stock';
 
-        const productData = {
-          ...formData,
-          price: (parseFloat(formData.price) || 0) / USD_TO_INR,
-          discount: parseFloat(formData.discount) || 0,
-          gst: parseFloat(formData.gst) || 0,
-          stock: parsedStock,
-          availabilityStatus: derivedStatus,
-          colors: formData.colors.split(',').map(c => c.trim()).filter(Boolean),
+      const productPayload = {
+        name: formData.name,
+        description: formData.description,
+        brand: formData.brand,
+        category: formData.category,
+        sub_category: formData.subCategory,
+        price: (parseFloat(formData.price) || 0) / USD_TO_INR,
+        discount: parseFloat(formData.discount) || 0,
+        gst: parseFloat(formData.gst) || 0,
+        stock: parsedStock,
+        sku: formData.sku,
+        availability_status: derivedStatus,
+        colors: formData.colors.split(',').map(c => c.trim()).filter(Boolean),
         sizes: formData.sizes.split(',').map(s => s.trim()).filter(Boolean),
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
+        featured: Boolean(formData.featured),
+        trending: Boolean(formData.trending),
+        best_seller: Boolean(formData.bestSeller),
+        status: formData.status || 'published',
         thumbnail: thumbnailUrl,
         images: imageUrls,
-        updatedAt: serverTimestamp()
+        updated_at: new Date().toISOString()
       };
 
       if (isEditing && productId) {
-        await updateDoc(doc(db, 'products', productId), productData);
+        const { error: updateErr } = await supabase
+          .from('products')
+          .update(productPayload)
+          .eq('id', productId);
+        if (updateErr) throw updateErr;
         toast.success('Product updated successfully!');
       } else {
-        productData.createdAt = serverTimestamp();
-        await addDoc(collection(db, 'products'), productData);
+        const newId = `prod-${Date.now()}`;
+        const { error: insertErr } = await supabase
+          .from('products')
+          .insert({ id: newId, ...productPayload, created_at: new Date().toISOString() });
+        if (insertErr) throw insertErr;
         toast.success('Product added successfully!');
       }
       
