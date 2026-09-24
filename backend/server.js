@@ -12,6 +12,11 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', service: 'shopmate-backend', timestamp: new Date().toISOString() });
+});
+
 // Reusable Nodemailer transporter for Gmail SMTP (Port 587 STARTTLS)
 function getTransporter() {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {

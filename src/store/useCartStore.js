@@ -65,7 +65,7 @@ const useCartStore = create(
             .from('cart_items')
             .select('items')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
           if (data && data.items) {
             const remoteItems = data.items || [];

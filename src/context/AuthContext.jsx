@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../supabase/supabase';
+import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
 
@@ -10,6 +11,9 @@ export function useAuth() {
 const getAuthErrorMessage = (error) => {
   if (!error) return 'An unexpected error occurred.';
   const msg = error.message || error.error_description || '';
+  if (msg.includes('provider is not enabled') || msg.includes('Google Sign-In is not enabled')) {
+    return 'Google Sign-In is not enabled yet in your Supabase project dashboard. Please enable the Google provider under Authentication > Providers in Supabase.';
+  }
   if (msg.includes('Invalid login credentials')) return 'Invalid email or password.';
   if (msg.includes('User already registered')) return 'An account with this email already exists. Please log in.';
   if (msg.includes('Password should be at least')) return 'Password must be at least 6 characters.';
@@ -25,41 +29,69 @@ export function AuthProvider({ children }) {
   async function fetchUserProfile(authUser) {
     if (!authUser) return null;
     try {
-      const { data: profile, error } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
-        .single();
+        .maybeSingle();
 
       const fallbackName =
         authUser.user_metadata?.displayName ||
         authUser.user_metadata?.full_name ||
+        authUser.user_metadata?.name ||
         (authUser.email ? authUser.email.split('@')[0] : 'User');
 
       const photoURL =
         authUser.user_metadata?.avatar_url ||
+        authUser.user_metadata?.picture ||
         authUser.user_metadata?.photoURL ||
         profile?.photo_url ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=E2E8F0&color=1E293B`;
+
+      let finalProfile = profile;
+      if (!finalProfile) {
+        // Auto-provision profile row in Supabase database for Google OAuth users
+        const { data: newProfile } = await supabase
+          .from('profiles')
+          .upsert({
+            id: authUser.id,
+            email: authUser.email,
+            display_name: fallbackName,
+            photo_url: photoURL,
+            role: 'customer'
+          }, { onConflict: 'id' })
+          .select()
+          .maybeSingle();
+
+        finalProfile = newProfile || {
+          id: authUser.id,
+          email: authUser.email,
+          display_name: fallbackName,
+          photo_url: photoURL,
+          role: 'customer'
+        };
+      }
 
       return {
         id: authUser.id,
         uid: authUser.id, // Backwards compatibility for existing components
         email: authUser.email,
-        displayName: profile?.display_name || fallbackName,
-        phone: profile?.phone || '',
-        photoURL,
-        role: profile?.role || 'customer',
-        provider: authUser.app_metadata?.provider || 'email',
-        ...profile
+        displayName: finalProfile?.display_name || fallbackName,
+        phone: finalProfile?.phone || '',
+        photoURL: finalProfile?.photo_url || photoURL,
+        role: finalProfile?.role || 'customer',
+        provider: authUser.app_metadata?.provider || 'google',
+        ...finalProfile
       };
     } catch (err) {
       console.warn("Could not fetch user profile from Supabase:", err);
+      const fallbackName = authUser.user_metadata?.full_name || (authUser.email ? authUser.email.split('@')[0] : 'User');
       return {
         id: authUser.id,
         uid: authUser.id,
         email: authUser.email,
-        displayName: authUser.email ? authUser.email.split('@')[0] : 'User',
+        displayName: fallbackName,
+        photoURL: authUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=E2E8F0&color=1E293B`,
         role: 'customer'
       };
     }
@@ -130,13 +162,14 @@ export function AuthProvider({ children }) {
 
   async function loginWithGoogle() {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin
         }
       });
       if (error) throw error;
+      return data;
     } catch (error) {
       throw new Error(getAuthErrorMessage(error));
     }
@@ -174,10 +207,18 @@ export function AuthProvider({ children }) {
     });
 
     // 2. Auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const userObj = await fetchUserProfile(session.user);
         setCurrentUser(userObj);
+
+        // Detect return from OAuth redirect
+        if (event === 'SIGNED_IN' && (window.location.hash.includes('access_token') || window.location.search.includes('code='))) {
+          toast.success(`Welcome, ${userObj?.displayName || 'User'}!`);
+          if (window.location.hash.includes('access_token')) {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        }
       } else {
         setCurrentUser(null);
       }
