@@ -77,7 +77,8 @@ export function AuthProvider({ children }) {
         uid: authUser.id, // Backwards compatibility for existing components
         email: authUser.email,
         displayName: finalProfile?.display_name || fallbackName,
-        phone: finalProfile?.phone || '',
+        phone: finalProfile?.phone || authUser.user_metadata?.phone || '',
+        gender: authUser.user_metadata?.gender || 'male',
         photoURL: finalProfile?.photo_url || photoURL,
         role: finalProfile?.role || 'customer',
         provider: authUser.app_metadata?.provider || 'google',
@@ -91,6 +92,8 @@ export function AuthProvider({ children }) {
         uid: authUser.id,
         email: authUser.email,
         displayName: fallbackName,
+        phone: authUser.user_metadata?.phone || '',
+        gender: authUser.user_metadata?.gender || 'male',
         photoURL: authUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=E2E8F0&color=1E293B`,
         role: 'customer'
       };
@@ -230,8 +233,14 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  const updateCurrentUser = (updates) => {
+    setCurrentUser((prev) => (prev ? { ...prev, ...updates } : null));
+  };
+
   const value = {
     currentUser,
+    loading,
+    updateCurrentUser,
     signup,
     login,
     logout,

@@ -4,16 +4,19 @@ import { useAuth } from '../context/AuthContext';
 import { Trash2, Plus, Minus, ArrowRight, ShoppingBag } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
 import { formatCurrency, convertUsdToInr } from '../utils/formatCurrency';
+import useStoreSettings from '../hooks/useStoreSettings';
 
 const Cart = () => {
   const { items, removeItem, updateQuantity, getSubtotal } = useCartStore();
   const { currentUser } = useAuth();
+  const { taxRate, calculateTax, calculateShipping, getEffectiveTaxRate } = useStoreSettings();
   const navigate = useNavigate();
 
   const subtotalInr = convertUsdToInr(getSubtotal());
-  const shippingInr = subtotalInr > 499 || subtotalInr === 0 ? 0 : 50;
-  const taxInr = (subtotalInr + shippingInr) * 0.18;
+  const shippingInr = calculateShipping(subtotalInr);
+  const taxInr = calculateTax(subtotalInr, items);
   const totalInr = subtotalInr + shippingInr + taxInr;
+  const currentTaxRate = getEffectiveTaxRate(items, subtotalInr);
 
   const handleCheckout = () => {
     // Navigate straight to checkout, which is a protected route.
@@ -118,7 +121,7 @@ const Cart = () => {
                 <p className="text-xs text-neutral">Free shipping on orders over ₹499</p>
               )}
               <div className="flex justify-between text-neutral">
-                <span>GST (18%)</span>
+                <span>GST ({currentTaxRate}%)</span>
                 <span className="font-medium">{formatCurrency(taxInr)}</span>
               </div>
               <div className="pt-4 border-t border-neutral-light flex justify-between items-center text-lg font-bold text-neutral-dark">

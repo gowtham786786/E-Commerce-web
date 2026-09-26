@@ -29,8 +29,14 @@ const OrderDetailsModal = ({ order, isOpen, onClose }) => {
             <div>
               <h2 className="text-xl font-bold text-neutral-dark">Order #{order.id.slice(-6).toUpperCase()}</h2>
               <p className="text-sm text-neutral mt-1 flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}
+                <Calendar className="w-4 h-4 text-primary" />
+                {(() => {
+                  const rawDate = order.created_at || order.createdAt;
+                  if (!rawDate) return 'N/A';
+                  if (rawDate.toDate) return rawDate.toDate().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+                  const d = new Date(rawDate);
+                  return isNaN(d.getTime()) ? 'N/A' : d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+                })()}
               </p>
             </div>
             <button 
@@ -50,16 +56,52 @@ const OrderDetailsModal = ({ order, isOpen, onClose }) => {
                   <MapPin className="w-5 h-5 text-primary" />
                   Customer & Delivery Details
                 </h3>
-                <div className="bg-accent-light p-4 rounded-xl space-y-2 text-sm text-neutral-dark">
-                  <p><span className="font-semibold">Name:</span> {order.customer?.name || 'Guest'}</p>
-                  <p><span className="font-semibold">Email:</span> {order.customer?.email || 'N/A'}</p>
-                  <p><span className="font-semibold">Phone:</span> {order.customer?.phone || 'N/A'}</p>
-                  <div className="pt-2 mt-2 border-t border-neutral-light/50">
-                    <p className="font-semibold mb-1">Shipping Address:</p>
-                    <p>{order.customer?.address}</p>
-                    <p>{order.customer?.city}, {order.customer?.state} {order.customer?.zip}</p>
-                  </div>
-                </div>
+                {(() => {
+                  const s = order.shipping_address || {};
+                  const c = order.customer || {};
+                  const p = order.userProfile || {};
+
+                  const name = s.full_name || s.name || c.name || p.display_name || p.displayName || 'Guest Customer';
+                  const email = s.email || c.email || p.email || 'N/A';
+                  const phone = s.phone || c.phone || p.phone || 'N/A';
+                  const street = s.street || c.address || '';
+                  const area = s.area || '';
+                  const city = s.city || c.city || '';
+                  const state = s.state || c.state || '';
+                  const pin = s.pincode || s.zip || c.zip || '';
+                  const country = s.country || 'India';
+                  const addrType = s.type || '';
+
+                  const hasAddress = street || city || state;
+
+                  return (
+                    <div className="bg-accent-light p-4 rounded-xl space-y-2 text-sm text-neutral-dark">
+                      <p><span className="font-semibold text-neutral-600">Name:</span> <span className="font-bold text-neutral-900">{name}</span></p>
+                      <p><span className="font-semibold text-neutral-600">Email:</span> <span className="font-medium text-neutral-800">{email}</span></p>
+                      <p><span className="font-semibold text-neutral-600">Phone:</span> <span className="font-medium text-neutral-800">{phone}</span></p>
+                      
+                      <div className="pt-2 mt-2 border-t border-neutral-light/70 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold text-neutral-700">Shipping Address:</p>
+                          {addrType && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-white text-primary rounded-md border border-primary/20">
+                              {addrType}
+                            </span>
+                          )}
+                        </div>
+                        {hasAddress ? (
+                          <div className="text-neutral-800 space-y-0.5 pt-0.5">
+                            {street && <p>{street}{area ? `, ${area}` : ''}</p>}
+                            <p>{[city, state, pin].filter(Boolean).join(', ')}</p>
+                            {country && <p className="text-xs text-neutral-500 font-medium">{country}</p>}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-neutral-400 italic">No physical address recorded</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Order Summary Info */}
@@ -77,8 +119,26 @@ const OrderDetailsModal = ({ order, isOpen, onClose }) => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="font-semibold">Payment Method:</span>
-                    <span className="uppercase">{order.paymentMethod || 'COD'}</span>
+                    <span className="uppercase font-bold text-xs bg-white px-2.5 py-1 rounded-md border border-neutral-200">
+                      {order.payment_method || order.paymentMethod || 'COD'}
+                    </span>
                   </div>
+                  {order.subtotal !== undefined && (
+                    <div className="pt-2 border-t border-neutral-light/50 space-y-1.5 text-xs text-neutral-600">
+                      <div className="flex justify-between">
+                        <span>Items Subtotal:</span>
+                        <span className="font-medium text-neutral-900">{formatCurrency(convertUsdToInr(order.subtotal))}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Delivery Charges:</span>
+                        <span className="font-medium text-neutral-900">{Number(order.shipping) === 0 ? 'FREE' : formatCurrency(convertUsdToInr(order.shipping))}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>GST / Taxes:</span>
+                        <span className="font-medium text-neutral-900">{formatCurrency(convertUsdToInr(order.tax))}</span>
+                      </div>
+                    </div>
+                  )}
                   <div className="pt-3 mt-2 border-t border-neutral-light/50 flex justify-between items-center">
                     <span className="font-bold text-base">Total Amount:</span>
                     <span className="font-bold text-lg text-primary">{formatCurrency(convertUsdToInr(order.total))}</span>

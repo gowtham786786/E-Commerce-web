@@ -15,6 +15,14 @@ import Profile from './pages/Profile';
 import OrderConfirmation from './pages/OrderConfirmation';
 import ProtectedRoute from './components/ProtectedRoute';
 import Wishlist from './pages/Wishlist';
+import Categories from './pages/Categories';
+import About from './pages/About';
+import TrackOrder from './pages/TrackOrder';
+import ReturnsRefunds from './pages/ReturnsRefunds';
+import ShippingPolicy from './pages/ShippingPolicy';
+import Contact from './pages/Contact';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 import PageTransition from './components/PageTransition';
 
 // Admin Imports
@@ -26,7 +34,7 @@ import Dashboard from './pages/admin/Dashboard';
 import Products from './pages/admin/Products';
 import AddProduct from './pages/admin/AddProduct';
 import EditProduct from './pages/admin/EditProduct';
-import Categories from './pages/admin/Categories';
+import AdminCategories from './pages/admin/Categories';
 import Orders from './pages/admin/Orders';
 import Customers from './pages/admin/Customers';
 import Inventory from './pages/admin/Inventory';
@@ -53,7 +61,7 @@ const AdminAnimatedRoutes = () => {
         <Route path="/products" element={<PageTransition title="Products"><Products /></PageTransition>} />
         <Route path="/products/add" element={<PageTransition title="Add Product"><AddProduct /></PageTransition>} />
         <Route path="/products/edit/:id" element={<PageTransition title="Edit Product"><EditProduct /></PageTransition>} />
-        <Route path="/categories" element={<PageTransition title="Categories"><Categories /></PageTransition>} />
+        <Route path="/categories" element={<PageTransition title="Categories"><AdminCategories /></PageTransition>} />
         <Route path="/orders" element={<PageTransition title="Orders"><Orders /></PageTransition>} />
         <Route path="/customers" element={<PageTransition title="Customers"><Customers /></PageTransition>} />
         <Route path="/inventory" element={<PageTransition title="Inventory"><Inventory /></PageTransition>} />
@@ -88,6 +96,14 @@ const AnimatedRoutes = () => {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PageTransition title="Home"><Home /></PageTransition>} />
         <Route path="/shop" element={<PageTransition title="Shop"><Shop /></PageTransition>} />
+        <Route path="/categories" element={<PageTransition title="Categories"><Categories /></PageTransition>} />
+        <Route path="/about" element={<PageTransition title="About Us"><About /></PageTransition>} />
+        <Route path="/track-order" element={<PageTransition title="Track Order"><TrackOrder /></PageTransition>} />
+        <Route path="/returns-refunds" element={<PageTransition title="Returns & Refunds"><ReturnsRefunds /></PageTransition>} />
+        <Route path="/shipping-policy" element={<PageTransition title="Shipping Policy"><ShippingPolicy /></PageTransition>} />
+        <Route path="/contact" element={<PageTransition title="Contact Us"><Contact /></PageTransition>} />
+        <Route path="/privacy-policy" element={<PageTransition title="Privacy Policy"><PrivacyPolicy /></PageTransition>} />
+        <Route path="/terms-of-service" element={<PageTransition title="Terms of Service"><TermsOfService /></PageTransition>} />
         <Route path="/product/:id" element={<PageTransition title="Product"><ProductDetail /></PageTransition>} />
         <Route path="/cart" element={<PageTransition title="Cart"><Cart /></PageTransition>} />
         <Route path="/wishlist" element={<PageTransition title="Wishlist"><Wishlist /></PageTransition>} />

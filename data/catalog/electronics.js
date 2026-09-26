@@ -44,13 +44,13 @@ export const electronicsProducts = [
     "trending": false,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/Casio%20Digital%20Watch%20F-91W/1.jpg",
+    "thumbnail": "/images/products/Electronics/Casio Digital Watch F-91W/1.jpg",
     "images": [
-      "/images/products/Electronics/Casio%20Digital%20Watch%20F-91W/1.jpg",
-      "/images/products/Electronics/Casio%20Digital%20Watch%20F-91W/2.jpg",
-      "/images/products/Electronics/Casio%20Digital%20Watch%20F-91W/3.jpg",
-      "/images/products/Electronics/Casio%20Digital%20Watch%20F-91W/4.jpg",
-      "/images/products/Electronics/Casio%20Digital%20Watch%20F-91W/5.jpg"
+      "/images/products/Electronics/Casio Digital Watch F-91W/1.jpg",
+      "/images/products/Electronics/Casio Digital Watch F-91W/2.jpg",
+      "/images/products/Electronics/Casio Digital Watch F-91W/3.jpg",
+      "/images/products/Electronics/Casio Digital Watch F-91W/4.jpg",
+      "/images/products/Electronics/Casio Digital Watch F-91W/5.jpg"
     ],
     "rating": 4.3,
     "review_count": 2461
@@ -261,13 +261,13 @@ export const electronicsProducts = [
     "trending": true,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/Fastrack%20Reflex%20Play%20Smartwatch/1.png",
+    "thumbnail": "/images/products/Electronics/Fastrack Reflex Play Smartwatch/1.png",
     "images": [
-      "/images/products/Electronics/Fastrack%20Reflex%20Play%20Smartwatch/1.png",
-      "/images/products/Electronics/Fastrack%20Reflex%20Play%20Smartwatch/2.png",
-      "/images/products/Electronics/Fastrack%20Reflex%20Play%20Smartwatch/3.png",
-      "/images/products/Electronics/Fastrack%20Reflex%20Play%20Smartwatch/4.png",
-      "/images/products/Electronics/Fastrack%20Reflex%20Play%20Smartwatch/5.png"
+      "/images/products/Electronics/Fastrack Reflex Play Smartwatch/1.png",
+      "/images/products/Electronics/Fastrack Reflex Play Smartwatch/2.png",
+      "/images/products/Electronics/Fastrack Reflex Play Smartwatch/3.png",
+      "/images/products/Electronics/Fastrack Reflex Play Smartwatch/4.png",
+      "/images/products/Electronics/Fastrack Reflex Play Smartwatch/5.png"
     ],
     "rating": 4.4,
     "review_count": 785
@@ -289,11 +289,11 @@ export const electronicsProducts = [
     "trending": false,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/Havells%20Hair%20Dryer%20HD3151/1.png",
+    "thumbnail": "/images/products/Electronics/Havells Hair Dryer HD3151/1.png",
     "images": [
-      "/images/products/Electronics/Havells%20Hair%20Dryer%20HD3151/1.png",
-      "/images/products/Electronics/Havells%20Hair%20Dryer%20HD3151/2.png",
-      "/images/products/Electronics/Havells%20Hair%20Dryer%20HD3151/3.png"
+      "/images/products/Electronics/Havells Hair Dryer HD3151/1.png",
+      "/images/products/Electronics/Havells Hair Dryer HD3151/2.png",
+      "/images/products/Electronics/Havells Hair Dryer HD3151/3.png"
     ],
     "rating": 4.5,
     "review_count": 306
@@ -315,13 +315,13 @@ export const electronicsProducts = [
     "trending": false,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/HP%20Wireless%20Mouse%20Z3700/1.png",
+    "thumbnail": "/images/products/Electronics/HP Wireless Mouse Z3700/1.png",
     "images": [
-      "/images/products/Electronics/HP%20Wireless%20Mouse%20Z3700/1.png",
-      "/images/products/Electronics/HP%20Wireless%20Mouse%20Z3700/2.png",
-      "/images/products/Electronics/HP%20Wireless%20Mouse%20Z3700/3.png",
-      "/images/products/Electronics/HP%20Wireless%20Mouse%20Z3700/4.png",
-      "/images/products/Electronics/HP%20Wireless%20Mouse%20Z3700/5.png"
+      "/images/products/Electronics/HP Wireless Mouse Z3700/1.png",
+      "/images/products/Electronics/HP Wireless Mouse Z3700/2.png",
+      "/images/products/Electronics/HP Wireless Mouse Z3700/3.png",
+      "/images/products/Electronics/HP Wireless Mouse Z3700/4.png",
+      "/images/products/Electronics/HP Wireless Mouse Z3700/5.png"
     ],
     "rating": 4.6,
     "review_count": 2763
@@ -343,11 +343,11 @@ export const electronicsProducts = [
     "trending": true,
     "best_seller": true,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/iQOO%20Z9%20Lite%205G/image-1.png",
+    "thumbnail": "/images/products/Electronics/iQOO Z9 Lite 5G/image-1.png",
     "images": [
-      "/images/products/Electronics/iQOO%20Z9%20Lite%205G/image-1.png",
-      "/images/products/Electronics/iQOO%20Z9%20Lite%205G/image-2.png",
-      "/images/products/Electronics/iQOO%20Z9%20Lite%205G/image-3.png"
+      "/images/products/Electronics/iQOO Z9 Lite 5G/image-1.png",
+      "/images/products/Electronics/iQOO Z9 Lite 5G/image-2.png",
+      "/images/products/Electronics/iQOO Z9 Lite 5G/image-3.png"
     ],
     "rating": 4.7,
     "review_count": 1461
@@ -369,13 +369,13 @@ export const electronicsProducts = [
     "trending": false,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/JBL%20C100SI%20Wired%20Earphones/1.png",
+    "thumbnail": "/images/products/Electronics/JBL C100SI Wired Earphones/1.png",
     "images": [
-      "/images/products/Electronics/JBL%20C100SI%20Wired%20Earphones/1.png",
-      "/images/products/Electronics/JBL%20C100SI%20Wired%20Earphones/2.png",
-      "/images/products/Electronics/JBL%20C100SI%20Wired%20Earphones/3.png",
-      "/images/products/Electronics/JBL%20C100SI%20Wired%20Earphones/4.png",
-      "/images/products/Electronics/JBL%20C100SI%20Wired%20Earphones/5.png"
+      "/images/products/Electronics/JBL C100SI Wired Earphones/1.png",
+      "/images/products/Electronics/JBL C100SI Wired Earphones/2.png",
+      "/images/products/Electronics/JBL C100SI Wired Earphones/3.png",
+      "/images/products/Electronics/JBL C100SI Wired Earphones/4.png",
+      "/images/products/Electronics/JBL C100SI Wired Earphones/5.png"
     ],
     "rating": 4.8,
     "review_count": 620
@@ -397,13 +397,13 @@ export const electronicsProducts = [
     "trending": false,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/Luminous%20850VA%20Inverter/back_view.jpg",
+    "thumbnail": "/images/products/Electronics/Luminous 850VA Inverter/back_view.jpg",
     "images": [
-      "/images/products/Electronics/Luminous%20850VA%20Inverter/back_view.jpg",
-      "/images/products/Electronics/Luminous%20850VA%20Inverter/front_view.jpg",
-      "/images/products/Electronics/Luminous%20850VA%20Inverter/left_side_view.jpg",
-      "/images/products/Electronics/Luminous%20850VA%20Inverter/right_side_view.jpg",
-      "/images/products/Electronics/Luminous%20850VA%20Inverter/top_view.jpg"
+      "/images/products/Electronics/Luminous 850VA Inverter/back_view.jpg",
+      "/images/products/Electronics/Luminous 850VA Inverter/front_view.jpg",
+      "/images/products/Electronics/Luminous 850VA Inverter/left_side_view.jpg",
+      "/images/products/Electronics/Luminous 850VA Inverter/right_side_view.jpg",
+      "/images/products/Electronics/Luminous 850VA Inverter/top_view.jpg"
     ],
     "rating": 4.2,
     "review_count": 1181
@@ -425,13 +425,13 @@ export const electronicsProducts = [
     "trending": true,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/MacBook%20Air%20M2%20(8GB)/1.png",
+    "thumbnail": "/images/products/Electronics/MacBook Air M2 (8GB)/1.png",
     "images": [
-      "/images/products/Electronics/MacBook%20Air%20M2%20(8GB)/1.png",
-      "/images/products/Electronics/MacBook%20Air%20M2%20(8GB)/2.png",
-      "/images/products/Electronics/MacBook%20Air%20M2%20(8GB)/3.png",
-      "/images/products/Electronics/MacBook%20Air%20M2%20(8GB)/4.png",
-      "/images/products/Electronics/MacBook%20Air%20M2%20(8GB)/5.png"
+      "/images/products/Electronics/MacBook Air M2 (8GB)/1.png",
+      "/images/products/Electronics/MacBook Air M2 (8GB)/2.png",
+      "/images/products/Electronics/MacBook Air M2 (8GB)/3.png",
+      "/images/products/Electronics/MacBook Air M2 (8GB)/4.png",
+      "/images/products/Electronics/MacBook Air M2 (8GB)/5.png"
     ],
     "rating": 4.3,
     "review_count": 788
@@ -453,11 +453,11 @@ export const electronicsProducts = [
     "trending": false,
     "best_seller": true,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/Mi%205X%2055-inch%204K%20Google%20TV/image-1.png",
+    "thumbnail": "/images/products/Electronics/Mi 5X 55-inch 4K Google TV/image-1.png",
     "images": [
-      "/images/products/Electronics/Mi%205X%2055-inch%204K%20Google%20TV/image-1.png",
-      "/images/products/Electronics/Mi%205X%2055-inch%204K%20Google%20TV/image-2.png",
-      "/images/products/Electronics/Mi%205X%2055-inch%204K%20Google%20TV/image-3.png"
+      "/images/products/Electronics/Mi 5X 55-inch 4K Google TV/image-1.png",
+      "/images/products/Electronics/Mi 5X 55-inch 4K Google TV/image-2.png",
+      "/images/products/Electronics/Mi 5X 55-inch 4K Google TV/image-3.png"
     ],
     "rating": 4.4,
     "review_count": 2307
@@ -479,13 +479,13 @@ export const electronicsProducts = [
     "trending": false,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/Mi%20Power%20Bank%203i%2020000mAh/1.png",
+    "thumbnail": "/images/products/Electronics/Mi Power Bank 3i 20000mAh/1.png",
     "images": [
-      "/images/products/Electronics/Mi%20Power%20Bank%203i%2020000mAh/1.png",
-      "/images/products/Electronics/Mi%20Power%20Bank%203i%2020000mAh/2.png",
-      "/images/products/Electronics/Mi%20Power%20Bank%203i%2020000mAh/3.png",
-      "/images/products/Electronics/Mi%20Power%20Bank%203i%2020000mAh/4.png",
-      "/images/products/Electronics/Mi%20Power%20Bank%203i%2020000mAh/5.png"
+      "/images/products/Electronics/Mi Power Bank 3i 20000mAh/1.png",
+      "/images/products/Electronics/Mi Power Bank 3i 20000mAh/2.png",
+      "/images/products/Electronics/Mi Power Bank 3i 20000mAh/3.png",
+      "/images/products/Electronics/Mi Power Bank 3i 20000mAh/4.png",
+      "/images/products/Electronics/Mi Power Bank 3i 20000mAh/5.png"
     ],
     "rating": 4.5,
     "review_count": 2393
@@ -507,13 +507,13 @@ export const electronicsProducts = [
     "trending": true,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/Mi%20Smart%20Speaker/image-1.png",
+    "thumbnail": "/images/products/Electronics/Mi Smart Speaker/image-1.png",
     "images": [
-      "/images/products/Electronics/Mi%20Smart%20Speaker/image-1.png",
-      "/images/products/Electronics/Mi%20Smart%20Speaker/image-2.png",
-      "/images/products/Electronics/Mi%20Smart%20Speaker/image-3.png",
-      "/images/products/Electronics/Mi%20Smart%20Speaker/image-4.png",
-      "/images/products/Electronics/Mi%20Smart%20Speaker/image-5.png"
+      "/images/products/Electronics/Mi Smart Speaker/image-1.png",
+      "/images/products/Electronics/Mi Smart Speaker/image-2.png",
+      "/images/products/Electronics/Mi Smart Speaker/image-3.png",
+      "/images/products/Electronics/Mi Smart Speaker/image-4.png",
+      "/images/products/Electronics/Mi Smart Speaker/image-5.png"
     ],
     "rating": 4.6,
     "review_count": 1773
@@ -591,13 +591,13 @@ export const electronicsProducts = [
     "trending": true,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/Realme%20Buds%20Air%205/1.png",
+    "thumbnail": "/images/products/Electronics/Realme Buds Air 5/1.png",
     "images": [
-      "/images/products/Electronics/Realme%20Buds%20Air%205/1.png",
-      "/images/products/Electronics/Realme%20Buds%20Air%205/2.png",
-      "/images/products/Electronics/Realme%20Buds%20Air%205/3.png",
-      "/images/products/Electronics/Realme%20Buds%20Air%205/4.png",
-      "/images/products/Electronics/Realme%20Buds%20Air%205/5.png"
+      "/images/products/Electronics/Realme Buds Air 5/1.png",
+      "/images/products/Electronics/Realme Buds Air 5/2.png",
+      "/images/products/Electronics/Realme Buds Air 5/3.png",
+      "/images/products/Electronics/Realme Buds Air 5/4.png",
+      "/images/products/Electronics/Realme Buds Air 5/5.png"
     ],
     "rating": 4.2,
     "review_count": 630
@@ -619,13 +619,13 @@ export const electronicsProducts = [
     "trending": false,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/Samsung%2027-inch%20Curved%20Monitor/image-1.png",
+    "thumbnail": "/images/products/Electronics/Samsung 27-inch Curved Monitor/image-1.png",
     "images": [
-      "/images/products/Electronics/Samsung%2027-inch%20Curved%20Monitor/image-1.png",
-      "/images/products/Electronics/Samsung%2027-inch%20Curved%20Monitor/image-2.png",
-      "/images/products/Electronics/Samsung%2027-inch%20Curved%20Monitor/image-3.png",
-      "/images/products/Electronics/Samsung%2027-inch%20Curved%20Monitor/image-4.png",
-      "/images/products/Electronics/Samsung%2027-inch%20Curved%20Monitor/image-5.png"
+      "/images/products/Electronics/Samsung 27-inch Curved Monitor/image-1.png",
+      "/images/products/Electronics/Samsung 27-inch Curved Monitor/image-2.png",
+      "/images/products/Electronics/Samsung 27-inch Curved Monitor/image-3.png",
+      "/images/products/Electronics/Samsung 27-inch Curved Monitor/image-4.png",
+      "/images/products/Electronics/Samsung 27-inch Curved Monitor/image-5.png"
     ],
     "rating": 4.3,
     "review_count": 1938
@@ -647,13 +647,13 @@ export const electronicsProducts = [
     "trending": false,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/Samsung%2055-inch%20Crystal%204K%20Smart%20TV/1.png",
+    "thumbnail": "/images/products/Electronics/Samsung 55-inch Crystal 4K Smart TV/1.png",
     "images": [
-      "/images/products/Electronics/Samsung%2055-inch%20Crystal%204K%20Smart%20TV/1.png",
-      "/images/products/Electronics/Samsung%2055-inch%20Crystal%204K%20Smart%20TV/2.png",
-      "/images/products/Electronics/Samsung%2055-inch%20Crystal%204K%20Smart%20TV/3.png",
-      "/images/products/Electronics/Samsung%2055-inch%20Crystal%204K%20Smart%20TV/4.png",
-      "/images/products/Electronics/Samsung%2055-inch%20Crystal%204K%20Smart%20TV/5.png"
+      "/images/products/Electronics/Samsung 55-inch Crystal 4K Smart TV/1.png",
+      "/images/products/Electronics/Samsung 55-inch Crystal 4K Smart TV/2.png",
+      "/images/products/Electronics/Samsung 55-inch Crystal 4K Smart TV/3.png",
+      "/images/products/Electronics/Samsung 55-inch Crystal 4K Smart TV/4.png",
+      "/images/products/Electronics/Samsung 55-inch Crystal 4K Smart TV/5.png"
     ],
     "rating": 4.4,
     "review_count": 2288
@@ -675,13 +675,13 @@ export const electronicsProducts = [
     "trending": true,
     "best_seller": true,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/Samsung%20Galaxy%20S24%20FE/1.png",
+    "thumbnail": "/images/products/Electronics/Samsung Galaxy S24 FE/1.png",
     "images": [
-      "/images/products/Electronics/Samsung%20Galaxy%20S24%20FE/1.png",
-      "/images/products/Electronics/Samsung%20Galaxy%20S24%20FE/2.png",
-      "/images/products/Electronics/Samsung%20Galaxy%20S24%20FE/3.png",
-      "/images/products/Electronics/Samsung%20Galaxy%20S24%20FE/4.png",
-      "/images/products/Electronics/Samsung%20Galaxy%20S24%20FE/5.png"
+      "/images/products/Electronics/Samsung Galaxy S24 FE/1.png",
+      "/images/products/Electronics/Samsung Galaxy S24 FE/2.png",
+      "/images/products/Electronics/Samsung Galaxy S24 FE/3.png",
+      "/images/products/Electronics/Samsung Galaxy S24 FE/4.png",
+      "/images/products/Electronics/Samsung Galaxy S24 FE/5.png"
     ],
     "rating": 4.5,
     "review_count": 1492
@@ -703,13 +703,13 @@ export const electronicsProducts = [
     "trending": false,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/Sony%20WH-CH520%20Wireless%20Headphones/image-1.png",
+    "thumbnail": "/images/products/Electronics/Sony WH-CH520 Wireless Headphones/image-1.png",
     "images": [
-      "/images/products/Electronics/Sony%20WH-CH520%20Wireless%20Headphones/image-1.png",
-      "/images/products/Electronics/Sony%20WH-CH520%20Wireless%20Headphones/image-2.png",
-      "/images/products/Electronics/Sony%20WH-CH520%20Wireless%20Headphones/image-3.png",
-      "/images/products/Electronics/Sony%20WH-CH520%20Wireless%20Headphones/image-4.png",
-      "/images/products/Electronics/Sony%20WH-CH520%20Wireless%20Headphones/image-5.png"
+      "/images/products/Electronics/Sony WH-CH520 Wireless Headphones/image-1.png",
+      "/images/products/Electronics/Sony WH-CH520 Wireless Headphones/image-2.png",
+      "/images/products/Electronics/Sony WH-CH520 Wireless Headphones/image-3.png",
+      "/images/products/Electronics/Sony WH-CH520 Wireless Headphones/image-4.png",
+      "/images/products/Electronics/Sony WH-CH520 Wireless Headphones/image-5.png"
     ],
     "rating": 4.6,
     "review_count": 606
@@ -731,13 +731,13 @@ export const electronicsProducts = [
     "trending": false,
     "best_seller": false,
     "status": "published",
-    "thumbnail": "/images/products/Electronics/WD%20Elements%202TB%20External%20Hard%20Drive/wd_detail.png",
+    "thumbnail": "/images/products/Electronics/WD Elements 2TB External Hard Drive/wd_detail.png",
     "images": [
-      "/images/products/Electronics/WD%20Elements%202TB%20External%20Hard%20Drive/wd_detail.png",
-      "/images/products/Electronics/WD%20Elements%202TB%20External%20Hard%20Drive/wd_front.png",
-      "/images/products/Electronics/WD%20Elements%202TB%20External%20Hard%20Drive/wd_lifestyle.png",
-      "/images/products/Electronics/WD%20Elements%202TB%20External%20Hard%20Drive/wd_side.png",
-      "/images/products/Electronics/WD%20Elements%202TB%20External%20Hard%20Drive/wd_top.png"
+      "/images/products/Electronics/WD Elements 2TB External Hard Drive/wd_detail.png",
+      "/images/products/Electronics/WD Elements 2TB External Hard Drive/wd_front.png",
+      "/images/products/Electronics/WD Elements 2TB External Hard Drive/wd_lifestyle.png",
+      "/images/products/Electronics/WD Elements 2TB External Hard Drive/wd_side.png",
+      "/images/products/Electronics/WD Elements 2TB External Hard Drive/wd_top.png"
     ],
     "rating": 4.7,
     "review_count": 2063

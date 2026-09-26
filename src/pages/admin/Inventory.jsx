@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabase/supabase';
+import { invalidateProductCache } from '../../hooks/useProducts';
 import { FileText, Search, AlertTriangle, ArrowUp, ArrowDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
@@ -40,6 +41,7 @@ const Inventory = () => {
         .update({ stock: newStock })
         .eq('id', id);
       if (error) throw error;
+      invalidateProductCache();
       setProducts(products.map(p => p.id === id ? { ...p, stock: newStock } : p));
       toast.success('Stock updated');
     } catch (error) {

@@ -1,11 +1,11 @@
-import { Heart, Star, ShoppingCart, ImageOff } from 'lucide-react';
+import { Heart, Star, ShoppingCart, ImageOff, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useCartStore from '../store/useCartStore';
 import useWishlistStore from '../store/useWishlistStore';
 import toast from 'react-hot-toast';
 import { formatCurrency, convertUsdToInr } from '../utils/formatCurrency';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onQuickView }) => {
   const { addItem } = useCartStore();
   const { toggleItem, checkIsWishlisted } = useWishlistStore();
   
@@ -53,13 +53,35 @@ const ProductCard = ({ product }) => {
             Trending
           </span>
         ) : null}
-        <button 
-          onClick={handleToggleWishlist}
-          className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full text-neutral hover:text-primary hover:bg-white transition-colors shadow-sm"
-          aria-label="Add to wishlist"
-        >
-          <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-primary text-primary' : ''}`} />
-        </button>
+        
+        {/* Actions: Wishlist */}
+        <div className="absolute top-3 right-3 flex flex-col gap-1.5 z-10">
+          <button 
+            onClick={handleToggleWishlist}
+            className="p-2 bg-white/85 hover:bg-white backdrop-blur-sm rounded-full text-neutral hover:text-primary transition-colors shadow-sm"
+            aria-label="Add to wishlist"
+            title="Wishlist"
+          >
+            <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-primary text-primary' : ''}`} />
+          </button>
+        </div>
+
+        {/* Quick View Button on Image Hover */}
+        {onQuickView && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onQuickView(product);
+            }}
+            className="absolute bottom-3 inset-x-3 hidden sm:flex items-center justify-center gap-1.5 py-2 px-3 bg-white/95 hover:bg-white text-neutral-dark rounded-xl text-xs font-bold shadow-md opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-10 border border-neutral-200/60"
+            aria-label={`Quick view ${product.name}`}
+          >
+            <Eye className="w-3.5 h-3.5 text-primary" />
+            <span>Quick View</span>
+          </button>
+        )}
       </div>
 
       {/* Content */}

@@ -13,14 +13,61 @@ const Customers = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data: profilesData, error: profErr } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      // Filter out admins from customer list
-      const customerList = (data || []).filter(c => c.role !== 'admin');
+      if (profErr) throw profErr;
+
+      // Fetch all orders to compute customer total spent and order counts
+      const { data: ordersData } = await supabase
+        .from('orders')
+        .select('id, user_id, total, status, shipping_address');
+
+      const statsByUser = {};
+      const phoneByUser = {};
+
+      (ordersData || []).forEach(order => {
+        const uId = order.user_id;
+        const sEmail = order.shipping_address?.email?.toLowerCase();
+        const sPhone = order.shipping_address?.phone;
+
+        const recordStats = (key) => {
+          if (!key) return;
+          if (!statsByUser[key]) {
+            statsByUser[key] = { totalSpent: 0, ordersCount: 0 };
+          }
+          if (order.status !== 'cancelled') {
+            statsByUser[key].totalSpent += Number(order.total || 0);
+          }
+          statsByUser[key].ordersCount += 1;
+          if (sPhone && !phoneByUser[key]) {
+            phoneByUser[key] = sPhone;
+          }
+        };
+
+        if (uId) recordStats(uId);
+        if (sEmail) recordStats(sEmail);
+      });
+
+      // Filter out admins from customer list and attach computed stats
+      const customerList = (profilesData || [])
+        .filter(c => c.role !== 'admin')
+        .map(c => {
+          const byId = statsByUser[c.id];
+          const byEmail = statsByUser[c.email?.toLowerCase()];
+          const stats = byId || byEmail || { totalSpent: 0, ordersCount: 0 };
+          const fallbackPhone = phoneByUser[c.id] || phoneByUser[c.email?.toLowerCase()] || null;
+
+          return {
+            ...c,
+            phone: c.phone || fallbackPhone,
+            totalSpent: stats.totalSpent,
+            ordersCount: stats.ordersCount,
+          };
+        });
+
       setCustomers(customerList);
     } catch (error) {
       console.error("Error fetching customers:", error);
@@ -156,7 +203,14 @@ const Customers = () => {
                           {joinDate}
                         </td>
                         <td className="p-4 text-sm font-bold text-neutral-dark">
-                          {formatCurrency(convertUsdToInr(customer.totalSpent || customer.total_spent || 0))}
+                          <p>{formatCurrency(convertUsdToInr(customer.totalSpent || customer.total_spent || 0))}</p>
+                          {customer.ordersCount > 0 ? (
+                            <p className="text-xs text-[#5C6B4A] font-semibold mt-0.5">
+                              {customer.ordersCount} {customer.ordersCount === 1 ? 'order' : 'orders'}
+                            </p>
+                          ) : (
+                            <p className="text-[11px] text-neutral-400 font-normal mt-0.5">0 orders</p>
+                          )}
                         </td>
                         <td className="p-4">
                           <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${

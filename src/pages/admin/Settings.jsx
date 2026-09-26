@@ -2,37 +2,32 @@ import { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
-
-const DEFAULT_SETTINGS = {
-  websiteName: 'ShopMate',
-  email: 'support@shopmate.com',
-  phone: '+91 98765 43210',
-  address: '123 Tech Park, Bangalore, India',
-  gstNumber: '29AAAAA0000A1Z5',
-  taxRate: '18',
-  deliveryCharge: '50',
-  currency: 'INR',
-  facebook: 'https://facebook.com',
-  instagram: 'https://instagram.com',
-  twitter: 'https://twitter.com'
-};
+import { DEFAULT_STORE_SETTINGS, getLocalSettings, saveLocalSettings } from '../../hooks/useStoreSettings';
 
 const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState(getLocalSettings);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('shopmate_admin_settings');
-      if (saved) {
-        setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(saved) });
+    const init = async () => {
+      try {
+        const local = getLocalSettings();
+        setSettings(local);
+
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const remote = await res.json();
+          saveLocalSettings(remote);
+          setSettings(remote);
+        }
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error loading settings:", error);
-    } finally {
-      setLoading(false);
-    }
+    };
+    init();
   }, []);
 
   const handleChange = (e) => {
@@ -43,10 +38,17 @@ const Settings = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      localStorage.setItem('shopmate_admin_settings', JSON.stringify(settings));
-      // Artificial delay for smooth UX feedback
-      await new Promise(r => setTimeout(r, 400));
-      toast.success('Settings updated successfully!');
+      // 1. Immediately update localStorage and notify all components/tabs
+      saveLocalSettings(settings);
+
+      // 2. Persist to backend
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+
+      toast.success('Store settings & GST rates updated successfully! 🎉');
     } catch (error) {
       console.error("Error saving settings:", error);
       toast.error('Failed to update settings');
@@ -136,18 +138,37 @@ const Settings = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-dark mb-1">Default Tax Rate (%)</label>
+              <label className="block text-sm font-medium text-neutral-dark mb-1">
+                Default GST Rate (%)
+              </label>
               <input 
-                type="number" name="taxRate" value={settings.taxRate} onChange={handleChange}
+                type="number" 
+                name="taxRate" 
+                min="0"
+                max="100"
+                step="any"
+                required
+                value={settings.taxRate} 
+                onChange={handleChange}
+                placeholder="18"
                 className="w-full px-4 py-2.5 rounded-xl border border-neutral-light focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
+              <p className="text-[11px] text-neutral-500 mt-1">Global GST applied at customer Cart & Checkout</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-neutral-dark mb-1">Flat Delivery Charge (₹)</label>
               <input 
-                type="number" name="deliveryCharge" value={settings.deliveryCharge} onChange={handleChange}
+                type="number" 
+                name="deliveryCharge" 
+                min="0"
+                step="any"
+                required
+                value={settings.deliveryCharge} 
+                onChange={handleChange}
+                placeholder="50"
                 className="w-full px-4 py-2.5 rounded-xl border border-neutral-light focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
+              <p className="text-[11px] text-neutral-500 mt-1">Free delivery automatically qualifies &gt; ₹499</p>
             </div>
           </div>
         </div>

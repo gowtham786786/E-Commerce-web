@@ -8,6 +8,7 @@ import useWishlistStore from '../store/useWishlistStore';
 import toast from 'react-hot-toast';
 import SEO from '../components/SEO';
 import { formatCurrency, convertUsdToInr } from '../utils/formatCurrency';
+import useStoreSettings from '../hooks/useStoreSettings';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -20,6 +21,7 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCartStore();
   const { toggleItem, checkIsWishlisted } = useWishlistStore();
+  const { taxRate, deliveryCharge } = useStoreSettings();
 
   const isWishlisted = product ? checkIsWishlisted(product.id) : false;
 
@@ -70,10 +72,24 @@ const ProductDetail = () => {
     };
 
     fetchProductDetails();
+
+    const handleProductUpdated = () => {
+      fetchProductDetails();
+    };
+
+    window.addEventListener('shopmate_products_updated', handleProductUpdated);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'shopmate_products_updated') fetchProductDetails();
+    });
+
     // Reset state when id changes
     setQuantity(1);
     setSelectedImage(0);
     window.scrollTo(0, 0);
+
+    return () => {
+      window.removeEventListener('shopmate_products_updated', handleProductUpdated);
+    };
   }, [id]);
 
   if (loading) {
@@ -176,6 +192,11 @@ const ProductDetail = () => {
                 {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
               </span>
             )}
+          </div>
+
+          <div className="text-xs text-neutral-500 font-medium mb-5 -mt-3 flex items-center gap-1.5">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            Inclusive of applicable taxes • GST ({(product.gst !== undefined && product.gst !== null && product.gst !== '') ? product.gst : taxRate}%) calculated at checkout
           </div>
 
           <p className="text-neutral text-lg mb-8 leading-relaxed">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabase/supabase';
 import { formatCurrency, convertUsdToInr } from '../../utils/formatCurrency';
+import { invalidateProductCache } from '../../hooks/useProducts';
 import { Package, Plus, Pencil, Trash2, Search, Filter, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
@@ -38,6 +39,7 @@ const Products = () => {
       try {
         const { error } = await supabase.from('products').delete().eq('id', id);
         if (error) throw error;
+        invalidateProductCache();
         toast.success('Product deleted successfully');
         fetchProducts();
       } catch (error) {

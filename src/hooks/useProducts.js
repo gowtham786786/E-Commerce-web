@@ -8,6 +8,7 @@ let fetchPromise = null;
 
 const mapProduct = (p) => ({
   ...p,
+  gst: p.gst !== undefined && p.gst !== null && p.gst !== '' ? parseFloat(p.gst) : undefined,
   subCategory: p.sub_category || p.subCategory || '',
   bestSeller: p.best_seller ?? p.bestSeller ?? false,
   reviewCount: p.review_count ?? p.reviewCount ?? 0,
@@ -17,6 +18,16 @@ const mapProduct = (p) => ({
   sizes: Array.isArray(p.sizes) ? p.sizes : [],
   tags: Array.isArray(p.tags) ? p.tags : []
 });
+
+export const invalidateProductCache = () => {
+  cachedProducts = null;
+  isFetching = false;
+  fetchPromise = null;
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('shopmate_products_updated', Date.now().toString());
+    window.dispatchEvent(new CustomEvent('shopmate_products_updated'));
+  }
+};
 
 export const useProducts = () => {
   const [products, setProducts] = useState(cachedProducts || []);
@@ -30,7 +41,7 @@ export const useProducts = () => {
       return;
     }
 
-    if (isFetching && fetchPromise) {
+    if (isFetching && fetchPromise && !force) {
       setLoading(true);
       try {
         const result = await fetchPromise;
@@ -57,8 +68,6 @@ export const useProducts = () => {
         if (sbError) throw sbError;
 
         const finalProducts = (data || []).map(mapProduct);
-        console.log(`[useProducts] Fetched ${finalProducts.length} products from Supabase.`);
-
         cachedProducts = finalProducts;
         return finalProducts;
       } catch (err) {
@@ -83,6 +92,24 @@ export const useProducts = () => {
 
   useEffect(() => {
     fetchProducts();
+
+    const handleProductsUpdated = () => {
+      fetchProducts(true);
+    };
+
+    const handleStorage = (e) => {
+      if (e.key === 'shopmate_products_updated') {
+        fetchProducts(true);
+      }
+    };
+
+    window.addEventListener('shopmate_products_updated', handleProductsUpdated);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('shopmate_products_updated', handleProductsUpdated);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
   return { products, loading, error, refetch: () => fetchProducts(true) };

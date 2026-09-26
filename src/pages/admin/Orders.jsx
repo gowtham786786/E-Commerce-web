@@ -20,15 +20,73 @@ const Orders = () => {
   const [updatingId, setUpdatingId] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  const formatDate = (dateVal) => {
+    if (!dateVal) return 'N/A';
+    if (dateVal.toDate) return dateVal.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   const fetchOrders = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: ordersData, error: ordersErr } = await supabase
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setOrders(data || []);
+      if (ordersErr) throw ordersErr;
+
+      // Fetch profiles to resolve user_id -> email/name if missing
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('*');
+
+      const profileMap = (profilesData || []).reduce((acc, p) => {
+        acc[p.id] = p;
+        return acc;
+      }, {});
+
+      const enrichedOrders = (ordersData || []).map((order) => {
+        const profile = profileMap[order.user_id] || {};
+        const shipping = order.shipping_address || {};
+        const customerObj = order.customer || {};
+
+        const customerName =
+          shipping.full_name ||
+          shipping.name ||
+          customerObj.name ||
+          profile.display_name ||
+          profile.displayName ||
+          'Guest';
+
+        const customerEmail =
+          shipping.email ||
+          customerObj.email ||
+          profile.email ||
+          'N/A';
+
+        const customerPhone =
+          shipping.phone ||
+          customerObj.phone ||
+          profile.phone ||
+          'N/A';
+
+        return {
+          ...order,
+          payment_method: order.payment_method || order.paymentMethod || 'cod',
+          customer: {
+            name: customerName,
+            email: customerEmail,
+            phone: customerPhone,
+            ...customerObj,
+            ...shipping
+          },
+          userProfile: profile
+        };
+      });
+
+      setOrders(enrichedOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
       toast.error('Failed to load orders');
@@ -150,14 +208,14 @@ const Orders = () => {
                         <p className="text-xs text-neutral">{order.customer?.email || 'N/A'}</p>
                       </td>
                       <td className="p-4 text-sm text-neutral">
-                        {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}
+                        {formatDate(order.created_at || order.createdAt)}
                       </td>
                       <td className="p-4 text-sm font-bold text-neutral-dark">
                         {formatCurrency(convertUsdToInr(order.total))}
                       </td>
                       <td className="p-4">
-                        <span className="text-xs font-medium bg-neutral-light px-2 py-1 rounded-md uppercase tracking-wider text-neutral-dark">
-                          {order.paymentMethod || 'COD'}
+                        <span className="text-xs font-semibold bg-neutral-100 px-2.5 py-1 rounded-md uppercase tracking-wider text-neutral-800">
+                          {order.payment_method || order.paymentMethod || 'COD'}
                         </span>
                       </td>
                       <td className="p-4">

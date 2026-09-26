@@ -15,7 +15,12 @@ const useCartStore = create(
           if (existingItem) {
             newItems = state.items.map((item) =>
               item.productId === product.id
-                ? { ...item, quantity: item.quantity + (product.quantity || 1) }
+                ? { 
+                    ...item, 
+                    quantity: item.quantity + (product.quantity || 1),
+                    price: product.price,
+                    gst: product.gst !== undefined ? product.gst : item.gst 
+                  }
                 : item
             );
           } else {
@@ -27,6 +32,7 @@ const useCartStore = create(
                 image: product.images?.[0] || product.thumbnail || '',
                 price: product.price,
                 quantity: product.quantity || 1,
+                gst: product.gst !== undefined ? product.gst : null,
               },
             ];
           }

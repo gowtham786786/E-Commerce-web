@@ -3,6 +3,7 @@ import { Upload, X, Save, ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase/supabase';
 import { convertUsdToInr, USD_TO_INR } from '../../utils/formatCurrency';
+import { invalidateProductCache } from '../../hooks/useProducts';
 import toast from 'react-hot-toast';
 
 const INITIAL_STATE = {
@@ -149,6 +150,7 @@ const ProductForm = ({ initialData = null, isEditing = false, productId = null }
           .update(productPayload)
           .eq('id', productId);
         if (updateErr) throw updateErr;
+        invalidateProductCache();
         toast.success('Product updated successfully!');
       } else {
         const newId = `prod-${Date.now()}`;
@@ -156,6 +158,7 @@ const ProductForm = ({ initialData = null, isEditing = false, productId = null }
           .from('products')
           .insert({ id: newId, ...productPayload, created_at: new Date().toISOString() });
         if (insertErr) throw insertErr;
+        invalidateProductCache();
         toast.success('Product added successfully!');
       }
       

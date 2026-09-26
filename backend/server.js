@@ -3,6 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 dotenv.config();
 
@@ -221,6 +223,48 @@ app.post('/api/auth/verify-otp', (req, res) => {
 
   otpStore.delete(email);
   res.json({ message: 'OTP verified successfully', success: true });
+});
+
+// Store Settings Endpoints (GST, Delivery, Contact)
+const SETTINGS_FILE = path.join(__dirname, '..', 'data', 'settings.json');
+
+const DEFAULT_STORE_SETTINGS = {
+  websiteName: 'ShopMate',
+  email: 'reddygowtham397@gmail.com',
+  phone: '+91 98765 43210',
+  address: '123 Tech Park, Bangalore, India',
+  gstNumber: '29AAAAA0000A1Z5',
+  taxRate: '18',
+  deliveryCharge: '50',
+  currency: 'INR',
+  facebook: 'https://facebook.com',
+  instagram: 'https://instagram.com',
+  twitter: 'https://twitter.com'
+};
+
+app.get('/api/settings', (req, res) => {
+  try {
+    if (fs.existsSync(SETTINGS_FILE)) {
+      const data = fs.readFileSync(SETTINGS_FILE, 'utf8');
+      return res.json({ ...DEFAULT_STORE_SETTINGS, ...JSON.parse(data) });
+    }
+    res.json(DEFAULT_STORE_SETTINGS);
+  } catch (err) {
+    res.json(DEFAULT_STORE_SETTINGS);
+  }
+});
+
+app.post('/api/settings', (req, res) => {
+  try {
+    const updated = { ...DEFAULT_STORE_SETTINGS, ...req.body };
+    const dir = path.dirname(SETTINGS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(updated, null, 2), 'utf8');
+    res.json({ success: true, settings: updated });
+  } catch (err) {
+    console.error('Error saving settings:', err);
+    res.status(500).json({ error: 'Failed to persist settings' });
+  }
 });
 
 app.listen(PORT, () => {

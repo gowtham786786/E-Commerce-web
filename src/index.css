@@ -26,4 +26,10 @@
   .hide-number-spinners {
     -moz-appearance: textfield; /* Firefox */
   }
+
+  /* Hide Microsoft Edge native password reveal and clear icons */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
+  }
 }
