@@ -20,7 +20,7 @@ const Payments = () => {
 
       if (error) throw error;
       const paymentList = (data || []).map(order => ({
-        id: order.transaction_id || order.payment_intent_id || `TXN${String(order.id).replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+        id: order.payment_id || order.transaction_id || order.payment_intent_id || `TXN${String(order.id).replace(/-/g, '').slice(0, 8).toUpperCase()}`,
         orderId: String(order.id),
         customerName: order.shipping_address?.full_name || order.customer?.name || order.user_email || 'Customer',
         total: order.total_amount || order.total || 0,
@@ -109,7 +109,11 @@ const Payments = () => {
                         {formatCurrency(convertUsdToInr(payment.total))}
                       </td>
                       <td className="p-4">
-                        <span className="text-xs font-medium bg-neutral-light px-2 py-1 rounded-md uppercase tracking-wider text-neutral-dark">
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider ${
+                          payment.paymentMethod?.toLowerCase() === 'razorpay' 
+                            ? 'bg-[#5C6B4A]/10 text-[#5C6B4A] border border-[#5C6B4A]/30' 
+                            : 'bg-amber-100 text-amber-800 border border-amber-200'
+                        }`}>
                           {payment.paymentMethod || 'COD'}
                         </span>
                       </td>
