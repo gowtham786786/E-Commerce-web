@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 const DEFAULT_STORE_SETTINGS = {
   websiteName: 'ShopMate',
@@ -15,7 +15,7 @@ const DEFAULT_STORE_SETTINGS = {
   twitter: 'https://twitter.com'
 };
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -44,7 +44,13 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'POST') {
     try {
-      const updated = { ...DEFAULT_STORE_SETTINGS, ...req.body };
+      let body = req.body;
+      if (typeof body === 'string') {
+        try {
+          body = JSON.parse(body);
+        } catch (e) {}
+      }
+      const updated = { ...DEFAULT_STORE_SETTINGS, ...(body || {}) };
       const dir = path.dirname(settingsPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(settingsPath, JSON.stringify(updated, null, 2), 'utf8');
@@ -55,4 +61,4 @@ module.exports = async function handler(req, res) {
   }
 
   return res.status(405).json({ error: 'Method Not Allowed' });
-};
+}

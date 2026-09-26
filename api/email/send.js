@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 function generateOtpEmailTemplate(otp) {
   const currentYear = new Date().getFullYear();
@@ -79,7 +79,7 @@ function generateOtpText(otp) {
   return `Your ShopMate verification code is: ${otp}\n\nThis code is valid for 5 minutes.\nIf you did not request this code, you can safely ignore this message.\n\nShopMate Team`;
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -98,7 +98,15 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { to, subject, html, otp: customOtp } = req.body || {};
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        // fallback
+      }
+    }
+    const { to, subject, html, otp: customOtp } = body || {};
 
     if (!to) {
       return res.status(400).json({ error: 'Recipient email is required' });
@@ -150,4 +158,4 @@ module.exports = async function handler(req, res) {
       error: 'Failed to send email: ' + (error.message || String(error))
     });
   }
-};
+}

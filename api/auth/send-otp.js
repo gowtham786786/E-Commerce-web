@@ -1,5 +1,5 @@
-const nodemailer = require('nodemailer');
-const crypto = require('crypto');
+import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 
 // Global store for serverless environment in memory cache
 global.__shopmate_otp_store = global.__shopmate_otp_store || new Map();
@@ -43,7 +43,7 @@ function generateOtpEmailTemplate(otp) {
 </html>`;
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -53,7 +53,13 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    const { email } = req.body || {};
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {}
+    }
+    const { email } = body || {};
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
     const otp = crypto.randomInt(100000, 999999).toString();
@@ -87,4 +93,4 @@ module.exports = async function handler(req, res) {
     console.error('send-otp error:', error);
     return res.status(500).json({ error: 'Failed to send OTP: ' + error.message });
   }
-};
+}
