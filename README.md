@@ -150,25 +150,12 @@ Open two terminal windows:
 #### Terminal 1 — Backend API
 ```bash
 npm run server
-# Running at: http://localhost:5000
 ```
 
 #### Terminal 2 — Frontend App
 ```bash
 npm run dev
-# Running at: http://localhost:5173
 ```
-
----
-
-## 🔗 Application Routes
-
-| Route | URL | Description |
-| :--- | :--- | :--- |
-| **Storefront** | [http://localhost:5173](http://localhost:5173) | Main customer store and 3D hero showcase |
-| **Catalog** | [http://localhost:5173/shop](http://localhost:5173/shop) | Complete product catalog with filters |
-| **Admin Portal** | [http://localhost:5173/admin/login](http://localhost:5173/admin/login) | Protected admin console with 2FA OTP |
-| **Backend API** | [http://localhost:5000/api/health](http://localhost:5000/api/health) | Backend health check & service status |
 
 ---
 
