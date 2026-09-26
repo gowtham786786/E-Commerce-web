@@ -5,6 +5,7 @@ import { LogIn, ShieldAlert, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { hashOtp } from '../../utils/hashOtp';
 import { maskEmail } from '../../utils/maskEmail';
+import { getApiUrl } from '../../utils/apiConfig';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -35,9 +36,9 @@ const AdminLogin = () => {
         sessionStorage.setItem('admin_otp_attempts', '0');
         sessionStorage.removeItem('admin_otp_verified');
 
-        // Dispatch email notification to backend service if active
+        // Dispatch email notification to backend service / Vercel serverless function
         try {
-          await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/email/send`, {
+          const res = await fetch(getApiUrl('/api/email/send'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -45,6 +46,10 @@ const AdminLogin = () => {
               otp: otp
             })
           });
+          const resData = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            console.error('Email service response error:', resData);
+          }
         } catch (err) {
           console.warn('Backend email notification notice:', err.message);
         }

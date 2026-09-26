@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Key, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getApiUrl } from '../utils/apiConfig';
 
 const LoginOtp = () => {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP
@@ -29,7 +30,7 @@ const LoginOtp = () => {
     try {
       setError('');
       setLoading(true);
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/send-otp`, {
+      const res = await fetch(getApiUrl('/api/auth/send-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -61,7 +62,7 @@ const LoginOtp = () => {
     try {
       setError('');
       setLoading(true);
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/verify-otp`, {
+      const res = await fetch(getApiUrl('/api/auth/verify-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),

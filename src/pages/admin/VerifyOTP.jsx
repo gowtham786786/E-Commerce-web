@@ -5,6 +5,7 @@ import { ShieldCheck, RefreshCw, ArrowLeft, KeyRound } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { hashOtp } from '../../utils/hashOtp';
 import { maskEmail } from '../../utils/maskEmail';
+import { getApiUrl } from '../../utils/apiConfig';
 import { motion } from 'framer-motion';
 
 const VerifyOTP = () => {
@@ -144,9 +145,9 @@ const VerifyOTP = () => {
       sessionStorage.setItem('admin_otp_expires', String(expiresAt));
       sessionStorage.setItem('admin_otp_attempts', '0');
 
-      // Dispatch to backend email service
+      // Dispatch to backend email service / Vercel serverless function
       try {
-        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/email/send`, {
+        const res = await fetch(getApiUrl('/api/email/send'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -154,6 +155,10 @@ const VerifyOTP = () => {
             otp: newOtp
           })
         });
+        const resData = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error('Email resend error:', resData);
+        }
       } catch (err) {
         console.warn('Backend email notification notice:', err.message);
       }
