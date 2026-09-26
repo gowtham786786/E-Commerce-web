@@ -37,21 +37,17 @@ const AdminLogin = () => {
         sessionStorage.removeItem('admin_otp_verified');
 
         // Dispatch email notification to backend service / Vercel serverless function
-        try {
-          const res = await fetch(getApiUrl('/api/email/send'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: email,
-              otp: otp
-            })
-          });
-          const resData = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            console.error('Email service response error:', resData);
-          }
-        } catch (err) {
-          console.warn('Backend email notification notice:', err.message);
+        const res = await fetch(getApiUrl('/api/email/send'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: email,
+            otp: otp
+          })
+        });
+        const resData = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(resData.error || 'Failed to dispatch verification code email');
         }
 
         // Display toast confirming email dispatch

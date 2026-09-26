@@ -146,21 +146,17 @@ const VerifyOTP = () => {
       sessionStorage.setItem('admin_otp_attempts', '0');
 
       // Dispatch to backend email service / Vercel serverless function
-      try {
-        const res = await fetch(getApiUrl('/api/email/send'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: adminEmail,
-            otp: newOtp
-          })
-        });
-        const resData = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          console.error('Email resend error:', resData);
-        }
-      } catch (err) {
-        console.warn('Backend email notification notice:', err.message);
+      const res = await fetch(getApiUrl('/api/email/send'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: adminEmail,
+          otp: newOtp
+        })
+      });
+      const resData = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(resData.error || 'Failed to resend verification code');
       }
 
       // Display confirmation toast
@@ -172,7 +168,7 @@ const VerifyOTP = () => {
       inputRefs.current[0]?.focus();
     } catch (error) {
       console.error("Resend error:", error);
-      toast.error('Failed to resend code.');
+      toast.error(error.message || 'Failed to resend code.');
     } finally {
       setLoading(false);
     }
@@ -258,6 +254,9 @@ const VerifyOTP = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             {resendDisabled ? `Resend code in ${countdown}s` : 'Resend Code'}
           </button>
+          <p className="text-xs text-neutral/70 mt-3 max-w-xs mx-auto">
+            Please check your <strong>Inbox</strong>, <strong>Updates</strong>, or <strong>Spam</strong> folder.
+          </p>
         </div>
       </motion.div>
     </div>
