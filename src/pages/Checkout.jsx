@@ -27,6 +27,7 @@ import {
 import toast from 'react-hot-toast';
 import useStoreSettings from '../hooks/useStoreSettings';
 import { openRazorpayCheckout } from '../utils/razorpay';
+import UpiQrModal from '../components/checkout/UpiQrModal';
 
 const STEPS = [
   { name: 'Delivery Address', short: 'Address' },
@@ -64,8 +65,9 @@ const Checkout = () => {
     saveAddress: true,
   });
 
-  // Payment State
-  const [paymentMethod, setPaymentMethod] = useState('razorpay'); // 'razorpay', 'cod'
+  // Payment State (defaults to instant UPI QR, user can also choose Razorpay or COD)
+  const [paymentMethod, setPaymentMethod] = useState('upi_qr'); // 'upi_qr', 'razorpay', 'cod'
+  const [showUpiModal, setShowUpiModal] = useState(false);
 
   // Pre-fill addresses from Profile / localStorage or currentUser
   useEffect(() => {
@@ -261,7 +263,7 @@ const Checkout = () => {
       };
 
       const saveOrderToDatabase = async (paymentDetails = {}) => {
-        const isOnline = paymentMethod === 'razorpay';
+        const isOnline = paymentMethod === 'razorpay' || paymentMethod === 'upi_qr';
         const orderData = {
           user_id: currentUser?.id || currentUser?.uid || null,
           items,
@@ -300,13 +302,20 @@ const Checkout = () => {
         navigate('/order-confirmation', { state: { orderId: newOrder?.id } });
       };
 
-      // 1. If Cash on Delivery, place order directly
+      // 1. Direct Instant UPI QR Code Scanner
+      if (paymentMethod === 'upi_qr') {
+        setLoading(false);
+        setShowUpiModal(true);
+        return;
+      }
+
+      // 2. If Cash on Delivery, place order directly
       if (paymentMethod === 'cod') {
         await saveOrderToDatabase();
         return;
       }
 
-      // 2. Online Payment via Razorpay
+      // 3. Online Payment via Razorpay
       await openRazorpayCheckout({
         amount: tot,
         currency: 'INR',
@@ -341,6 +350,80 @@ const Checkout = () => {
       console.error('Checkout error:', err);
       toast.error(err.message || 'Failed to place order. Please try again.');
       setError(err.message || 'Failed to place order. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmUpiPayment = async ({ utr, upiId }) => {
+    setLoading(true);
+    try {
+      const sub = subtotalInr;
+      const ship = shippingCostInr;
+      const tax = taxInr;
+      const tot = totalInr;
+
+      const fullStreet = address.area
+        ? `${address.street}, ${address.area}`
+        : address.street;
+
+      const customerEmail = currentUser?.email || address.email || '';
+      const customerName = address.name || currentUser?.displayName || currentUser?.name || 'Valued Customer';
+      const customerPhone = address.phone || currentUser?.phone || '';
+
+      const finalAddress = {
+        full_name: customerName,
+        name: customerName,
+        email: customerEmail,
+        phone: customerPhone,
+        street: fullStreet,
+        area: address.area || '',
+        city: address.city,
+        state: address.state,
+        zip: address.pincode || address.zip || '',
+        pincode: address.pincode || address.zip || '',
+        country: address.country || 'India',
+        type: address.type || 'Home',
+      };
+
+      const paymentId = utr ? `upi_${utr}` : `upi_qr_${Date.now()}`;
+
+      const orderData = {
+        user_id: currentUser?.id || currentUser?.uid || null,
+        items,
+        shipping_address: finalAddress,
+        payment_method: 'upi_qr',
+        payment_id: paymentId,
+        transaction_id: paymentId,
+        razorpay_order_id: null,
+        payment_status: 'completed',
+        subtotal: sub,
+        shipping: ship,
+        tax: tax,
+        total: tot,
+        status: 'confirmed',
+        created_at: new Date().toISOString(),
+      };
+
+      const { data: newOrder, error: orderErr } = await supabase
+        .from('orders')
+        .insert(orderData)
+        .select()
+        .single();
+
+      if (orderErr) throw orderErr;
+
+      if (address.saveAddress) {
+        persistAddressToStorage(address);
+      }
+
+      clearCart();
+      setShowUpiModal(false);
+      toast.success('UPI Payment confirmed! Order placed successfully! 🎉');
+      navigate('/order-confirmation', { state: { orderId: newOrder?.id } });
+    } catch (err) {
+      console.error('UPI order confirm error:', err);
+      toast.error('Failed to place order: ' + (err.message || 'Please try again.'));
+    } finally {
       setLoading(false);
     }
   };
@@ -964,7 +1047,71 @@ const Checkout = () => {
 
                 {/* Payment Options */}
                 <div className="space-y-4">
-                  {/* 1. Razorpay Secure Online Payment */}
+                  {/* 1. Instant PhonePe & UPI QR Code Scanner (Recommended) */}
+                  <label
+                    className={`block border-2 rounded-2xl p-5 cursor-pointer transition-all ${
+                      paymentMethod === 'upi_qr'
+                        ? 'border-[#5f259f] bg-[#5f259f]/5 shadow-sm ring-2 ring-[#5f259f]/20'
+                        : 'border-neutral-200 hover:border-[#5f259f]/40'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="upi_qr"
+                          checked={paymentMethod === 'upi_qr'}
+                          onChange={() => setPaymentMethod('upi_qr')}
+                          className="w-5 h-5 mt-0.5 accent-[#5f259f]"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-extrabold text-neutral-900 text-sm sm:text-base block">
+                              Pay via UPI QR Scanner
+                            </span>
+                            <span className="inline-flex items-center gap-1 bg-[#5f259f] text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full tracking-wider shadow-xs">
+                              <Sparkles className="w-3 h-3" /> Most Popular • 0% Extra Fees
+                            </span>
+                          </div>
+                          <span className="text-xs text-neutral-600 block mt-1">
+                            Instant scan & pay with <strong>PhonePe, Google Pay, Paytm, BHIM, CRED</strong>. Pre-filled amount with direct confirmation.
+                          </span>
+
+                          {/* Supported Payment Badges */}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                            <span className="px-2.5 py-0.5 bg-white border border-[#5f259f]/30 text-[#5f259f] rounded text-[11px] font-black shadow-2xs">
+                              PhonePe
+                            </span>
+                            <span className="px-2 py-0.5 bg-white border border-neutral-200 rounded text-[11px] font-bold text-neutral-700 shadow-2xs">
+                              Google Pay
+                            </span>
+                            <span className="px-2 py-0.5 bg-white border border-[#00b9f5]/30 text-[#00b9f5] rounded text-[11px] font-black shadow-2xs">
+                              Paytm
+                            </span>
+                            <span className="px-2 py-0.5 bg-white border border-neutral-200 rounded text-[11px] font-bold text-neutral-700 shadow-2xs">
+                              BHIM UPI
+                            </span>
+                            <span className="px-2 py-0.5 bg-white border border-neutral-200 rounded text-[11px] font-bold text-neutral-700 shadow-2xs">
+                              CRED
+                            </span>
+                          </div>
+
+                          {paymentMethod === 'upi_qr' && (
+                            <div className="mt-3.5 pt-3 border-t border-neutral-200/80 text-[12px] text-emerald-800 bg-emerald-50/80 p-2.5 rounded-xl flex items-center gap-2 border border-emerald-200/60">
+                              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span>Direct Bank Transfer to {import.meta.env.VITE_STORE_UPI_NAME || 'Merchant'} • Instant Receipt</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="w-11 h-11 rounded-2xl bg-[#5f259f]/10 text-[#5f259f] flex items-center justify-center shrink-0">
+                        <QrCode className="w-6 h-6" />
+                      </div>
+                    </div>
+                  </label>
+
+                  {/* 2. Razorpay Secure Online Payment */}
                   <label
                     className={`block border-2 rounded-2xl p-5 cursor-pointer transition-all ${
                       paymentMethod === 'razorpay'
@@ -985,42 +1132,33 @@ const Checkout = () => {
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-extrabold text-neutral-900 text-sm sm:text-base block">
-                              Razorpay Secure Checkout
-                            </span>
-                            <span className="inline-flex items-center gap-1 bg-[#5C6B4A] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider">
-                              <Sparkles className="w-3 h-3" /> Recommended
+                              Cards & NetBanking (Razorpay)
                             </span>
                           </div>
                           <span className="text-xs text-neutral-600 block mt-1">
-                            Pay via <strong>UPI</strong> (Google Pay, PhonePe, Paytm), <strong>Credit / Debit Card</strong> (Visa, Mastercard, RuPay), or <strong>NetBanking</strong>.
+                            Pay securely via <strong>Credit / Debit Card</strong> (Visa, Mastercard, RuPay), or <strong>NetBanking</strong>.
                           </span>
 
                           {/* Supported Payment Badges */}
                           <div className="flex flex-wrap items-center gap-1.5 mt-3">
                             <span className="px-2 py-0.5 bg-white border border-neutral-200 rounded text-[11px] font-bold text-neutral-700 shadow-2xs">
-                              GPay
+                              Visa
                             </span>
                             <span className="px-2 py-0.5 bg-white border border-neutral-200 rounded text-[11px] font-bold text-neutral-700 shadow-2xs">
-                              PhonePe
+                              Mastercard
                             </span>
                             <span className="px-2 py-0.5 bg-white border border-neutral-200 rounded text-[11px] font-bold text-neutral-700 shadow-2xs">
-                              Paytm
+                              RuPay
                             </span>
                             <span className="px-2 py-0.5 bg-white border border-neutral-200 rounded text-[11px] font-bold text-neutral-700 shadow-2xs">
-                              UPI QR
-                            </span>
-                            <span className="px-2 py-0.5 bg-white border border-neutral-200 rounded text-[11px] font-bold text-neutral-700 shadow-2xs">
-                              Cards
-                            </span>
-                            <span className="px-2 py-0.5 bg-white border border-neutral-200 rounded text-[11px] font-bold text-neutral-700 shadow-2xs">
-                              NetBanking
+                              All Indian Banks
                             </span>
                           </div>
 
                           {paymentMethod === 'razorpay' && (
                             <div className="mt-3.5 pt-3 border-t border-neutral-200/80 text-[12px] text-emerald-800 bg-emerald-50/80 p-2.5 rounded-xl flex items-center gap-2 border border-emerald-200/60">
                               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                              <span>256-bit Bank Grade Encryption • Instant Confirmation • Test Sandbox Ready</span>
+                              <span>256-bit Bank Grade Encryption • Instant Confirmation</span>
                             </div>
                           )}
                         </div>
@@ -1031,7 +1169,7 @@ const Checkout = () => {
                     </div>
                   </label>
 
-                  {/* 2. Cash on Delivery (COD) */}
+                  {/* 3. Cash on Delivery (COD) */}
                   <label
                     className={`block border-2 rounded-2xl p-5 cursor-pointer transition-all ${
                       paymentMethod === 'cod'
@@ -1080,7 +1218,9 @@ const Checkout = () => {
                     onClick={handlePlaceOrder}
                     disabled={loading}
                     className={`w-full sm:w-auto px-10 py-3.5 text-white font-extrabold text-sm sm:text-base rounded-2xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 ${
-                      paymentMethod === 'razorpay'
+                      paymentMethod === 'upi_qr'
+                        ? 'bg-[#5f259f] hover:bg-[#4d1e82] shadow-[#5f259f]/25'
+                        : paymentMethod === 'razorpay'
                         ? 'bg-[#5C6B4A] hover:bg-[#4d593d] shadow-[#5C6B4A]/20'
                         : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
                     }`}
@@ -1088,12 +1228,17 @@ const Checkout = () => {
                     {loading ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>{paymentMethod === 'razorpay' ? 'Opening Razorpay Gateway...' : 'Placing Order...'}</span>
+                        <span>Processing Order...</span>
+                      </>
+                    ) : paymentMethod === 'upi_qr' ? (
+                      <>
+                        <QrCode className="w-5 h-5 text-purple-200" />
+                        <span>Scan & Pay {formatCurrency(totalInr)} with UPI QR</span>
                       </>
                     ) : paymentMethod === 'razorpay' ? (
                       <>
                         <Lock className="w-5 h-5 text-emerald-200" />
-                        <span>Pay {formatCurrency(totalInr)} with Razorpay</span>
+                        <span>Pay {formatCurrency(totalInr)} with Cards / NetBanking</span>
                       </>
                     ) : (
                       <>
@@ -1155,6 +1300,17 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+
+      {/* Direct Instant UPI QR Scanner Modal */}
+      <UpiQrModal
+        isOpen={showUpiModal}
+        onClose={() => setShowUpiModal(false)}
+        amount={totalInr}
+        customerName={address.name || currentUser?.displayName || ''}
+        orderNumber={`ORD-${Date.now().toString().slice(-6)}`}
+        onConfirmPayment={handleConfirmUpiPayment}
+        loading={loading}
+      />
     </div>
   );
 };

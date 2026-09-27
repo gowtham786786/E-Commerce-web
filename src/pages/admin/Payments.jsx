@@ -110,11 +110,13 @@ const Payments = () => {
                       </td>
                       <td className="p-4">
                         <span className={`text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider ${
-                          payment.paymentMethod?.toLowerCase() === 'razorpay' 
+                          payment.paymentMethod?.toLowerCase() === 'upi_qr'
+                            ? 'bg-[#5f259f]/10 text-[#5f259f] border border-[#5f259f]/30'
+                            : payment.paymentMethod?.toLowerCase() === 'razorpay' 
                             ? 'bg-[#5C6B4A]/10 text-[#5C6B4A] border border-[#5C6B4A]/30' 
                             : 'bg-amber-100 text-amber-800 border border-amber-200'
                         }`}>
-                          {payment.paymentMethod || 'COD'}
+                          {payment.paymentMethod === 'upi_qr' ? 'UPI QR (PhonePe)' : payment.paymentMethod || 'COD'}
                         </span>
                       </td>
                       <td className="p-4">
