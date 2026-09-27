@@ -276,8 +276,8 @@ app.post('/api/payment/create-order', async (req, res) => {
     }
 
     const amountInPaise = Math.round(Number(amount) * 100);
-    const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || '';
-    const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+    const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_Tgx24PwXQiI6y1';
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'sprszD6jt4OOROaaI8cS7WpI';
 
     if (keyId && keySecret && !keyId.includes('your_key') && !keySecret.includes('your_key')) {
       try {
@@ -336,7 +336,7 @@ app.post('/api/payment/verify', (req, res) => {
       return res.status(400).json({ error: 'Payment ID is required' });
     }
 
-    const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'sprszD6jt4OOROaaI8cS7WpI';
     if (keySecret && !keySecret.includes('your_key') && razorpay_order_id && razorpay_signature) {
       const generatedSignature = crypto
         .createHmac('sha256', keySecret)

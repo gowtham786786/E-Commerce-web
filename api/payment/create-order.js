@@ -33,8 +33,8 @@ export default async function handler(req, res) {
     }
 
     const amountInPaise = Math.round(Number(amount) * 100);
-    const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || '';
-    const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+    const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_Tgx24PwXQiI6y1';
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'sprszD6jt4OOROaaI8cS7WpI';
 
     // If real Razorpay keys are configured and valid
     if (keyId && keySecret && !keyId.includes('your_key') && !keySecret.includes('your_key')) {

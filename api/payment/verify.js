@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Payment ID is required for verification' });
     }
 
-    const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'sprszD6jt4OOROaaI8cS7WpI';
 
     // If live/test secret key is provided and signature is passed
     if (keySecret && !keySecret.includes('your_key') && razorpay_order_id && razorpay_signature) {

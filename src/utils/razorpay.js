@@ -62,7 +62,7 @@ export const openRazorpayCheckout = async ({
 
     // 2. Configure Razorpay modal options
     const options = {
-      key: orderData.key_id || 'rzp_test_shopmate',
+      key: orderData.key_id || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_Tgx24PwXQiI6y1',
       amount: orderData.amount,
       currency: orderData.currency || 'INR',
       name: 'ShopMate',
