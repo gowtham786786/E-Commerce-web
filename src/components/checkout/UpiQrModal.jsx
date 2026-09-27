@@ -25,7 +25,6 @@ export default function UpiQrModal({
 }) {
   const [copied, setCopied] = useState(false);
   const [utrNumber, setUtrNumber] = useState('');
-  const [activeTab, setActiveTab] = useState('dynamic'); // 'dynamic' | 'phonepe'
 
   if (!isOpen) return null;
 
@@ -119,70 +118,28 @@ export default function UpiQrModal({
               </div>
             </div>
 
-            {/* QR Switcher Tabs */}
-            <div className="flex items-center justify-center gap-2 p-1 bg-neutral-100 rounded-xl text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => setActiveTab('dynamic')}
-                className={`flex-1 py-1.5 px-3 rounded-lg transition-all ${
-                  activeTab === 'dynamic'
-                    ? 'bg-white text-neutral-900 shadow-xs'
-                    : 'text-neutral-500 hover:text-neutral-800'
-                }`}
-              >
-                Dynamic QR (Pre-filled ₹{Math.round(amount)})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('phonepe')}
-                className={`flex-1 py-1.5 px-3 rounded-lg transition-all ${
-                  activeTab === 'phonepe'
-                    ? 'bg-white text-neutral-900 shadow-xs'
-                    : 'text-neutral-500 hover:text-neutral-800'
-                }`}
-              >
-                PhonePe Official QR
-              </button>
-            </div>
-
             {/* QR Code Container */}
-            <div className="flex flex-col items-center justify-center p-3 bg-neutral-50 rounded-2xl border border-neutral-200/80">
-              {activeTab === 'dynamic' ? (
-                <div className="text-center">
-                  <div className="relative inline-block p-3 bg-white rounded-2xl shadow-sm border border-neutral-200">
-                    <img
-                      src={dynamicQrUrl}
-                      alt="UPI Dynamic Payment QR Code"
-                      className="w-52 h-52 sm:w-56 sm:h-56 object-contain rounded-lg"
-                      onError={(e) => {
-                        // Fallback to phonepe-qr if external service is unreachable
-                        e.target.src = '/images/phonepe-qr.png';
-                      }}
-                    />
-                    <div className="absolute inset-x-0 bottom-1 flex justify-center">
-                      <span className="bg-white/95 px-2 py-0.5 rounded text-[10px] font-bold text-neutral-600 shadow-2xs border border-neutral-200">
-                        Scan with any UPI App
-                      </span>
-                    </div>
+            <div className="flex flex-col items-center justify-center p-4 bg-neutral-50 rounded-2xl border border-neutral-200/80">
+              <div className="text-center">
+                <div className="relative inline-block p-3 bg-white rounded-2xl shadow-sm border border-neutral-200">
+                  <img
+                    src={dynamicQrUrl}
+                    alt="UPI Dynamic Payment QR Code"
+                    className="w-56 h-56 sm:w-60 sm:h-60 object-contain rounded-lg"
+                    onError={(e) => {
+                      e.target.src = '/images/phonepe-qr.png';
+                    }}
+                  />
+                  <div className="absolute inset-x-0 bottom-1 flex justify-center">
+                    <span className="bg-white/95 px-2.5 py-0.5 rounded text-[10px] font-bold text-neutral-600 shadow-2xs border border-neutral-200">
+                      Scan with PhonePe, GPay, Paytm or any UPI
+                    </span>
                   </div>
-                  <p className="text-xs text-neutral-500 mt-2 font-medium">
-                    Pre-configures <strong>₹{formattedAmount}</strong> automatically upon scanning.
-                  </p>
                 </div>
-              ) : (
-                <div className="text-center">
-                  <div className="inline-block p-1 bg-black rounded-2xl shadow-md overflow-hidden max-w-[240px]">
-                    <img
-                      src="/images/phonepe-qr.png"
-                      alt="PhonePe QR Code"
-                      className="w-56 h-auto object-contain rounded-xl"
-                    />
-                  </div>
-                  <p className="text-xs text-neutral-500 mt-2 font-medium">
-                    Verified PhonePe Merchant QR Code.
-                  </p>
-                </div>
-              )}
+                <p className="text-xs text-neutral-500 mt-2 font-medium">
+                  Pre-fills <strong>₹{formattedAmount}</strong> automatically upon scanning.
+                </p>
+              </div>
 
               {/* Supported UPI Badges */}
               <div className="flex flex-wrap items-center justify-center gap-2 mt-3 text-[11px] font-bold text-neutral-700">

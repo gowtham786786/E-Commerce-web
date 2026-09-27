@@ -19,6 +19,7 @@ import {
   ShieldCheck, 
   Check, 
   Edit3,
+  Trash2,
   QrCode,
   Lock,
   Zap,
@@ -49,6 +50,7 @@ const Checkout = () => {
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressIndex, setSelectedAddressIndex] = useState(0);
   const [isAddingNewAddress, setIsAddingNewAddress] = useState(false);
+  const [editingAddressIndex, setEditingAddressIndex] = useState(null);
 
   // Active Shipping Form State
   const [address, setAddress] = useState({
@@ -183,6 +185,64 @@ const Checkout = () => {
     });
   };
 
+  const handleEditAddress = (index, e) => {
+    if (e) e.stopPropagation();
+    const chosen = savedAddresses[index];
+    if (!chosen) return;
+    setEditingAddressIndex(index);
+    setIsAddingNewAddress(true);
+    setAddress({
+      ...chosen,
+      name: chosen.name || currentUser?.displayName || '',
+      phone: chosen.phone || currentUser?.phone || '',
+      country: chosen.country || 'India',
+      type: chosen.type || 'Home',
+      saveAddress: true,
+    });
+  };
+
+  const handleDeleteAddress = (index, e) => {
+    if (e) e.stopPropagation();
+    const target = savedAddresses[index];
+    const confirmName = target?.name || 'this address';
+    if (!window.confirm(`Are you sure you want to delete address for ${confirmName}?`)) {
+      return;
+    }
+
+    const updated = savedAddresses.filter((_, i) => i !== index);
+    setSavedAddresses(updated);
+
+    const uid = currentUser?.id || currentUser?.uid;
+    if (uid) {
+      localStorage.setItem(`shopmate_addresses_${uid}`, JSON.stringify(updated));
+    }
+
+    if (updated.length === 0) {
+      setIsAddingNewAddress(true);
+      setAddress({
+        name: currentUser?.displayName || currentUser?.name || '',
+        phone: currentUser?.phone || '',
+        pincode: '',
+        street: '',
+        area: '',
+        city: '',
+        state: '',
+        country: 'India',
+        type: 'Home',
+        isDefault: false,
+        saveAddress: true,
+      });
+    } else if (selectedAddressIndex === index) {
+      const nextIdx = 0;
+      setSelectedAddressIndex(nextIdx);
+      setAddress(updated[nextIdx]);
+    } else if (selectedAddressIndex > index) {
+      setSelectedAddressIndex(selectedAddressIndex - 1);
+    }
+
+    toast.success('Address removed from your address book.');
+  };
+
   const handleNextStep = (e) => {
     if (e) e.preventDefault();
     setError('');
@@ -212,6 +272,27 @@ const Checkout = () => {
       if (!address.state?.trim()) {
         setError('Please enter your state / province');
         return;
+      }
+
+      // If user was editing an existing address
+      if (editingAddressIndex !== null) {
+        const updated = [...savedAddresses];
+        updated[editingAddressIndex] = {
+          ...address,
+          pincode: address.pincode || address.zip,
+          isDefault: address.isDefault ?? updated[editingAddressIndex]?.isDefault ?? false,
+        };
+        setSavedAddresses(updated);
+        setSelectedAddressIndex(editingAddressIndex);
+        setAddress(updated[editingAddressIndex]);
+        const uid = currentUser?.id || currentUser?.uid;
+        if (uid) {
+          localStorage.setItem(`shopmate_addresses_${uid}`, JSON.stringify(updated));
+        }
+        setEditingAddressIndex(null);
+        setIsAddingNewAddress(false);
+        toast.success('Address updated successfully! ✅');
+        return; // stay on list so user sees their updated address
       }
 
       // If user chose to save this address or this is their first address
@@ -511,10 +592,12 @@ const Checkout = () => {
                   <div>
                     <h2 className="text-xl sm:text-2xl font-black text-neutral-dark flex items-center gap-2.5">
                       <MapPin className="w-6 h-6 text-[#5C6B4A]" />
-                      <span>Delivery Address</span>
+                      <span>{editingAddressIndex !== null ? 'Edit Delivery Address' : 'Delivery Address'}</span>
                     </h2>
                     <p className="text-xs sm:text-sm text-neutral-500 mt-1">
-                      {isAddingNewAddress
+                      {editingAddressIndex !== null
+                        ? 'Modify your recipient or address information below.'
+                        : isAddingNewAddress
                         ? 'Please enter accurate delivery details for courier dispatch.'
                         : 'Select where you would like your order delivered.'}
                     </p>
@@ -526,11 +609,13 @@ const Checkout = () => {
                       onClick={() => {
                         if (isAddingNewAddress) {
                           setIsAddingNewAddress(false);
+                          setEditingAddressIndex(null);
                           if (savedAddresses[selectedAddressIndex]) {
                             setAddress(savedAddresses[selectedAddressIndex]);
                           }
                         } else {
                           setIsAddingNewAddress(true);
+                          setEditingAddressIndex(null);
                           setAddress({
                             name: currentUser?.displayName || currentUser?.name || '',
                             phone: currentUser?.phone || '',
@@ -551,7 +636,7 @@ const Checkout = () => {
                       {isAddingNewAddress ? (
                         <>
                           <ArrowLeft className="w-4 h-4" />
-                          <span>Use Saved Address</span>
+                          <span>{editingAddressIndex !== null ? 'Cancel Edit' : 'Use Saved Address'}</span>
                         </>
                       ) : (
                         <>
@@ -592,19 +677,44 @@ const Checkout = () => {
                               </div>
 
                               <div className="flex-1">
-                                {/* Name and Tags */}
-                                <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                                  <span className="font-extrabold text-neutral-900 text-base">
-                                    {addr.name || currentUser?.displayName || 'Primary Recipient'}
-                                  </span>
-                                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#5C6B4A]/15 text-[#5C6B4A]">
-                                    {addr.type || 'Home'}
-                                  </span>
-                                  {addr.isDefault && (
-                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-neutral-200 text-neutral-700">
-                                      Default
+                                {/* Name, Tags, and Edit/Delete Actions */}
+                                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="font-extrabold text-neutral-900 text-base">
+                                      {addr.name || currentUser?.displayName || 'Primary Recipient'}
                                     </span>
-                                  )}
+                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#5C6B4A]/15 text-[#5C6B4A]">
+                                      {addr.type || 'Home'}
+                                    </span>
+                                    {addr.isDefault && (
+                                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-neutral-200 text-neutral-700">
+                                        Default
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Edit & Delete Action Buttons */}
+                                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleEditAddress(idx, e)}
+                                      className="px-2.5 py-1 text-neutral-600 hover:text-[#5C6B4A] hover:bg-[#5C6B4A]/10 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold border border-neutral-200 hover:border-[#5C6B4A]/30 bg-white shadow-2xs"
+                                      title="Edit Address"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5 text-[#5C6B4A]" />
+                                      <span>Edit</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleDeleteAddress(idx, e)}
+                                      className="px-2.5 py-1 text-neutral-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold border border-neutral-200 hover:border-red-200 bg-white shadow-2xs"
+                                      title="Delete Address"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                                      <span>Delete</span>
+                                    </button>
+                                  </div>
                                 </div>
 
                                 {/* Formatted Address */}
@@ -875,13 +985,32 @@ const Checkout = () => {
                       </div>
                     </div>
 
-                    {/* Submit Button */}
-                    <div className="pt-4 border-t border-neutral-200 flex justify-end">
+                    {/* Submit & Cancel Actions */}
+                    <div className="pt-4 border-t border-neutral-200 flex flex-wrap items-center justify-end gap-3">
+                      {savedAddresses.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingNewAddress(false);
+                            setEditingAddressIndex(null);
+                            if (savedAddresses[selectedAddressIndex]) {
+                              setAddress(savedAddresses[selectedAddressIndex]);
+                            }
+                          }}
+                          className="px-5 py-2.5 rounded-xl border border-neutral-300 hover:bg-neutral-100 text-neutral-700 font-bold text-sm transition-all"
+                        >
+                          Cancel
+                        </button>
+                      )}
                       <button
                         type="submit"
                         className="w-full sm:w-auto px-8 py-3 bg-[#5C6B4A] hover:bg-[#48543a] text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
                       >
-                        <span>Save & Deliver to this Address</span>
+                        <span>
+                          {editingAddressIndex !== null
+                            ? 'Update Address'
+                            : 'Save & Deliver to this Address'}
+                        </span>
                         <ChevronRight className="w-5 h-5" />
                       </button>
                     </div>
