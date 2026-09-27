@@ -111,6 +111,26 @@ export const openRazorpayCheckout = async ({
       theme: {
         color: '#5C6B4A' // ShopMate luxury brand olive
       },
+      config: {
+        display: {
+          blocks: {
+            upi: {
+              name: 'Pay using UPI / QR',
+              instruments: [
+                {
+                  method: 'upi',
+                  flows: ['qr', 'intent', 'collect'],
+                  apps: ['google_pay', 'phonepe', 'paytm']
+                }
+              ]
+            }
+          },
+          sequence: ['block.upi'],
+          preferences: {
+            show_default_blocks: true
+          }
+        }
+      },
       modal: {
         ondismiss: function () {
           if (onDismiss) onDismiss();
