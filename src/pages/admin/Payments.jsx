@@ -20,12 +20,12 @@ const Payments = () => {
 
       if (error) throw error;
       const paymentList = (data || []).map(order => ({
-        id: order.payment_id || order.transaction_id || order.payment_intent_id || `TXN${String(order.id).replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+        id: order.shipping_address?.payment_id || order.payment_id || order.transaction_id || order.payment_intent_id || `TXN${String(order.id).replace(/-/g, '').slice(0, 8).toUpperCase()}`,
         orderId: String(order.id),
-        customerName: order.shipping_address?.full_name || order.customer?.name || order.user_email || 'Customer',
+        customerName: order.shipping_address?.full_name || order.shipping_address?.name || order.customer?.name || order.user_email || 'Customer',
         total: order.total_amount || order.total || 0,
         paymentMethod: order.payment_method || order.paymentMethod || 'COD',
-        paymentStatus: order.payment_status || order.paymentStatus || (order.status === 'delivered' ? 'completed' : 'pending'),
+        paymentStatus: order.shipping_address?.payment_status || order.payment_status || order.paymentStatus || (order.status === 'delivered' ? 'completed' : 'pending'),
         createdAt: order.created_at || order.createdAt,
         ...order
       }));

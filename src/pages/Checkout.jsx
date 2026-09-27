@@ -267,12 +267,14 @@ const Checkout = () => {
         const orderData = {
           user_id: currentUser?.id || currentUser?.uid || null,
           items,
-          shipping_address: finalAddress,
+          shipping_address: {
+            ...finalAddress,
+            payment_id: paymentDetails.paymentId || null,
+            transaction_id: paymentDetails.paymentId || null,
+            razorpay_order_id: paymentDetails.orderId || null,
+            payment_status: isOnline ? 'completed' : 'pending'
+          },
           payment_method: paymentMethod,
-          payment_id: paymentDetails.paymentId || null,
-          transaction_id: paymentDetails.paymentId || null,
-          razorpay_order_id: paymentDetails.orderId || null,
-          payment_status: isOnline ? 'completed' : 'pending',
           subtotal: sub,
           shipping: ship,
           tax: tax,
@@ -390,12 +392,13 @@ const Checkout = () => {
       const orderData = {
         user_id: currentUser?.id || currentUser?.uid || null,
         items,
-        shipping_address: finalAddress,
+        shipping_address: {
+          ...finalAddress,
+          payment_id: paymentId,
+          transaction_id: paymentId,
+          payment_status: 'completed'
+        },
         payment_method: 'upi_qr',
-        payment_id: paymentId,
-        transaction_id: paymentId,
-        razorpay_order_id: null,
-        payment_status: 'completed',
         subtotal: sub,
         shipping: ship,
         tax: tax,
