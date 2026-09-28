@@ -122,8 +122,12 @@ const TrackOrder = () => {
   };
 
   const getStepStatus = (status, stepIndex) => {
-    const s = (status || 'confirmed').toLowerCase();
-    const rank = s === 'delivered' ? 4 : s === 'out_for_delivery' ? 3 : s === 'shipped' ? 2 : 1;
+    const s = String(status || 'confirmed').toLowerCase().trim().replace(/_/g, ' ');
+    const rank =
+      s === 'delivered' ? 5 :
+      s === 'out for delivery' ? 4 :
+      s === 'shipped' ? 3 :
+      s === 'packed' ? 2 : 1;
     if (rank > stepIndex) return 'completed';
     if (rank === stepIndex) return 'current';
     return 'pending';
@@ -250,13 +254,29 @@ const TrackOrder = () => {
             </div>
 
             {/* Stepper Progress Bar */}
-            <div className="py-4">
-              <div className="grid grid-cols-4 gap-2 relative">
+            <div className="py-6 relative">
+              {/* Connecting Line Track */}
+              {(() => {
+                const s = String(trackedOrder.status || 'confirmed').toLowerCase().trim().replace(/_/g, ' ');
+                const rank = s === 'delivered' ? 5 : s === 'out for delivery' ? 4 : s === 'shipped' ? 3 : s === 'packed' ? 2 : 1;
+                const fillPercent = ((rank - 1) / 4) * 100;
+                return (
+                  <div className="absolute top-[44px] left-[10%] right-[10%] h-1 bg-neutral-200 z-0">
+                    <div
+                      className="h-full bg-[#5C6B4A] transition-all duration-700"
+                      style={{ width: `${fillPercent}%` }}
+                    />
+                  </div>
+                );
+              })()}
+
+              <div className="grid grid-cols-5 gap-2 relative z-10">
                 {[
                   { title: 'Confirmed', desc: 'Order received', idx: 1 },
                   { title: 'Packed', desc: 'Quality checked', idx: 2 },
                   { title: 'Shipped', desc: 'In express transit', idx: 3 },
-                  { title: 'Delivered', desc: 'At your doorstep', idx: 4 }
+                  { title: 'Out for Delivery', desc: 'Courier on the way', idx: 4 },
+                  { title: 'Delivered', desc: 'At your doorstep', idx: 5 }
                 ].map((step) => {
                   const state = getStepStatus(trackedOrder.status, step.idx);
                   return (
@@ -264,10 +284,10 @@ const TrackOrder = () => {
                       <div
                         className={`w-10 h-10 mx-auto rounded-full flex items-center justify-center font-bold text-sm mb-2 transition-all ${
                           state === 'completed'
-                            ? 'bg-emerald-600 text-white'
+                            ? 'bg-emerald-600 text-white shadow-xs'
                             : state === 'current'
-                            ? 'bg-[#5C6B4A] text-white ring-4 ring-[#5C6B4A]/20'
-                            : 'bg-neutral-100 text-neutral-400'
+                            ? 'bg-[#5C6B4A] text-white ring-4 ring-[#5C6B4A]/25 shadow-md scale-105 animate-pulse'
+                            : 'bg-white border-2 border-neutral-300 text-neutral-400'
                         }`}
                       >
                         {state === 'completed' ? <CheckCircle2 className="w-5 h-5" /> : step.idx}

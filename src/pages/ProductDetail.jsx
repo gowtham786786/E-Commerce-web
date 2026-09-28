@@ -141,11 +141,19 @@ const ProductDetail = () => {
         {/* Image Gallery */}
         <div className="w-full lg:w-1/2">
           <div className="aspect-square rounded-2xl overflow-hidden bg-accent-light mb-4 border border-neutral-light relative">
-            {product.images?.[selectedImage] ? (
+            {product.images?.[selectedImage] || product.thumbnail ? (
               <img
-                src={product.images[selectedImage]}
+                src={product.images?.[selectedImage] || product.thumbnail}
                 alt={product.name}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  if (product.category === 'Fashion' || product.tags?.includes('signature archive')) {
+                    e.target.src = '/images/luxury_promo_banner.jpg';
+                  } else {
+                    e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80';
+                  }
+                }}
               />
             ) : (
               <div className="w-full h-full bg-neutral-light/50 flex flex-col items-center justify-center text-neutral">
@@ -163,7 +171,15 @@ const ProductDetail = () => {
                   onClick={() => setSelectedImage(idx)}
                   className={`w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${selectedImage === idx ? 'border-primary' : 'border-transparent hover:border-primary/50'}`}
                 >
-                  <img src={img} alt={`${product.name} thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                  <img
+                    src={img}
+                    alt={`${product.name} thumbnail ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/images/luxury_promo_banner.jpg';
+                    }}
+                  />
                 </button>
               ))}
             </div>

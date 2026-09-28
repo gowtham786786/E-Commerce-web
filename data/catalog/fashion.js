@@ -1,5 +1,35 @@
 export const fashionProducts = [
   {
+    "id": "fash-archive-01",
+    "name": "Signature Archive Handcrafted Sneaker in Olive & Navy",
+    "description": "Handcrafted from full-grain Italian calf leather and durable organic canvas. Featuring harmonious olive green, midnight navy, and warm ivory overlays with precision hand-stitching, cushioned memory-foam insoles, and vulcanized natural rubber outsoles built for timeless durability.",
+    "brand": "ShopMate Signature",
+    "category": "Fashion",
+    "sub_category": "Shoes",
+    "price": 8999,
+    "discount": 40,
+    "gst": 18,
+    "stock": 25,
+    "sku": "SMS-ARCH-SNK-01",
+    "availability_status": "In Stock",
+    "colors": ["Olive & Navy", "Warm Ivory", "Midnight Olive"],
+    "sizes": ["UK 7", "UK 8", "UK 9", "UK 10", "UK 11"],
+    "tags": ["signature archive", "sneakers", "luxury", "handcrafted", "sale", "limited release", "shoes"],
+    "featured": true,
+    "trending": true,
+    "best_seller": true,
+    "status": "published",
+    "thumbnail": "/images/products/Fashion/signature-archive-sneaker/angle-1-side.jpg",
+    "images": [
+      "/images/products/Fashion/signature-archive-sneaker/angle-1-side.jpg",
+      "/images/products/Fashion/signature-archive-sneaker/angle-2-front.jpg",
+      "/images/products/Fashion/signature-archive-sneaker/angle-3-top.jpg",
+      "/images/products/Fashion/signature-archive-sneaker/angle-4-heel.jpg"
+    ],
+    "rating": 4.9,
+    "review_count": 84
+  },
+  {
     "id": "fash-001",
     "name": "Blue & Black Check Shirt",
     "description": "The Blue & Black Check Shirt is a stylish and comfortable men's shirt featuring a classic check pattern. Made from high-quality fabric, it's suitable for both casual and semi-formal occasions. Tailored from breathable, premium fabrics for all-day comfort and modern elegance.",

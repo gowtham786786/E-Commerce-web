@@ -460,6 +460,116 @@ const Profile = () => {
     }
   };
 
+  // Helper for Order Tracking Milestones & Progress
+  const getOrderTrackingState = (rawStatus, createdAt) => {
+    const s = String(rawStatus || 'confirmed').toLowerCase().trim().replace(/_/g, ' ');
+
+    if (s === 'delivered') {
+      return {
+        badgeText: 'Delivered',
+        badgeClass: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+        bannerTitle: 'Delivered to your address',
+        courierLabel: 'Delivery Complete',
+        width: '100%',
+        barColor: 'bg-emerald-600',
+        isCancelled: false,
+        steps: [
+          { label: 'Confirmed', subLabel: 'Placed', isReached: true, isCurrent: false },
+          { label: 'Shipped', subLabel: 'In Transit', isReached: true, isCurrent: false },
+          { label: 'Out for Delivery', subLabel: 'Completed', isReached: true, isCurrent: false },
+          { label: 'Delivered', subLabel: 'Received', isReached: true, isCurrent: true },
+        ],
+      };
+    }
+
+    if (s === 'out for delivery') {
+      return {
+        badgeText: 'Out For Delivery',
+        badgeClass: 'bg-blue-100 text-blue-800 border border-blue-200 animate-pulse',
+        bannerTitle: 'Out for delivery — Arriving today!',
+        courierLabel: 'BlueDart Express',
+        width: '75%',
+        barColor: 'bg-[#5C6B4A]',
+        isCancelled: false,
+        steps: [
+          { label: 'Confirmed', subLabel: 'Verified', isReached: true, isCurrent: false },
+          { label: 'Shipped', subLabel: 'Dispatched', isReached: true, isCurrent: false },
+          { label: 'Out for Delivery', subLabel: 'Today', isReached: true, isCurrent: true },
+          { label: 'Delivered', subLabel: 'By 9 PM', isReached: false, isCurrent: false },
+        ],
+      };
+    }
+
+    if (s === 'shipped') {
+      return {
+        badgeText: 'Shipped',
+        badgeClass: 'bg-indigo-100 text-indigo-800 border border-indigo-200',
+        bannerTitle: `In express transit — Arriving by ${getDeliveryDate(createdAt)}`,
+        courierLabel: 'Standard Express',
+        width: '50%',
+        barColor: 'bg-[#5C6B4A]',
+        isCancelled: false,
+        steps: [
+          { label: 'Confirmed', subLabel: 'Verified', isReached: true, isCurrent: false },
+          { label: 'Shipped', subLabel: 'In Transit', isReached: true, isCurrent: true },
+          { label: 'Out for Delivery', subLabel: 'Expected', isReached: false, isCurrent: false },
+          { label: 'Delivered', subLabel: getDeliveryDate(createdAt), isReached: false, isCurrent: false },
+        ],
+      };
+    }
+
+    if (s === 'packed') {
+      return {
+        badgeText: 'Packed',
+        badgeClass: 'bg-purple-100 text-purple-800 border border-purple-200',
+        bannerTitle: 'Package prepared & awaiting courier pickup',
+        courierLabel: 'Packaging Hub',
+        width: '32%',
+        barColor: 'bg-[#5C6B4A]',
+        isCancelled: false,
+        steps: [
+          { label: 'Confirmed', subLabel: 'Verified', isReached: true, isCurrent: false },
+          { label: 'Packed', subLabel: 'Ready', isReached: true, isCurrent: true },
+          { label: 'Out for Delivery', subLabel: 'Pending', isReached: false, isCurrent: false },
+          { label: 'Delivered', subLabel: getDeliveryDate(createdAt), isReached: false, isCurrent: false },
+        ],
+      };
+    }
+
+    if (s === 'cancelled' || s === 'refunded' || s === 'refund requested') {
+      return {
+        badgeText: s === 'refunded' ? 'Refunded' : s === 'refund requested' ? 'Refund Requested' : 'Cancelled',
+        badgeClass: 'bg-rose-100 text-rose-800 border border-rose-200',
+        bannerTitle: s === 'refunded' ? 'Refund processed back to your payment method' : 'Order has been cancelled',
+        courierLabel: 'Cancelled',
+        width: '100%',
+        barColor: 'bg-rose-500',
+        isCancelled: true,
+        steps: [
+          { label: 'Order Placed', subLabel: 'Received', isReached: true, isCurrent: false },
+          { label: 'Cancelled', subLabel: 'Closed', isReached: true, isCurrent: true },
+        ],
+      };
+    }
+
+    // Default: confirmed / pending / processing
+    return {
+      badgeText: 'Order Confirmed',
+      badgeClass: 'bg-amber-100 text-amber-800 border border-amber-200',
+      bannerTitle: `Order Confirmed — Arriving by ${getDeliveryDate(createdAt)}`,
+      courierLabel: 'Standard Express',
+      width: '18%',
+      barColor: 'bg-[#5C6B4A]',
+      isCancelled: false,
+      steps: [
+        { label: 'Confirmed', subLabel: 'Confirmed', isReached: true, isCurrent: true },
+        { label: 'Shipped', subLabel: 'Pending', isReached: false, isCurrent: false },
+        { label: 'Out for Delivery', subLabel: 'Pending', isReached: false, isCurrent: false },
+        { label: 'Delivered', subLabel: getDeliveryDate(createdAt), isReached: false, isCurrent: false },
+      ],
+    };
+  };
+
   // Safe Avatar Initial Generator
   const userDisplayName = currentUser?.displayName || currentUser?.name || currentUser?.email?.split('@')[0] || 'User';
   const userInitials = userDisplayName
@@ -734,8 +844,7 @@ const Profile = () => {
                           ? formatCurrency(order.total)
                           : formatCurrency(convertUsdToInr(order.total));
 
-                      const isDelivered = order.status === 'delivered';
-                      const isShipped = order.status === 'shipped';
+                      const tracking = getOrderTrackingState(order.status, order.created_at);
 
                       return (
                         <div
@@ -764,15 +873,9 @@ const Profile = () => {
                             <div className="flex items-center gap-2">
                               <span className="text-[11px] text-neutral-500 font-mono">#{order.id.slice(0, 12)}</span>
                               <span
-                                className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                                  isDelivered
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : isShipped
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : 'bg-amber-100 text-amber-800'
-                                }`}
+                                className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${tracking.badgeClass}`}
                               >
-                                {order.status || 'Confirmed'}
+                                {tracking.badgeText}
                               </span>
                             </div>
                           </div>
@@ -780,32 +883,76 @@ const Profile = () => {
                           {/* Order Body */}
                           <div className="p-6 space-y-6">
                             {/* Live Delivery Status Tracker */}
-                            <div className="bg-[#F9FAF7] rounded-2xl p-4 border border-neutral-200/60">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
+                            <div className="bg-[#F9FAF7] rounded-2xl p-4 sm:p-5 border border-neutral-200/60">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-xs sm:text-sm font-bold text-neutral-800 flex items-center gap-2">
                                   <Truck className="w-4 h-4 text-[#5C6B4A]" />
-                                  {isDelivered
-                                    ? 'Delivered to your address'
-                                    : `Arriving by ${getDeliveryDate(order.created_at)}`}
+                                  {tracking.bannerTitle}
                                 </span>
-                                <span className="text-[11px] font-semibold text-[#5C6B4A]">
-                                  {isDelivered ? 'Delivery Complete' : 'Standard Express'}
+                                <span className="text-[11px] font-semibold text-[#5C6B4A] bg-[#5C6B4A]/10 px-2.5 py-0.5 rounded-full">
+                                  {tracking.courierLabel}
                                 </span>
                               </div>
 
-                              {/* Progress Track */}
-                              <div className="w-full bg-neutral-200 h-2 rounded-full overflow-hidden mt-3">
-                                <div
-                                  className="bg-[#5C6B4A] h-full rounded-full transition-all duration-500"
-                                  style={{
-                                    width: isDelivered ? '100%' : isShipped ? '66%' : '33%',
-                                  }}
-                                />
+                              {/* Progress Track Bar */}
+                              <div className="relative my-3">
+                                <div className="w-full bg-neutral-200 h-2.5 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-700 ${tracking.barColor}`}
+                                    style={{
+                                      width: tracking.width,
+                                    }}
+                                  />
+                                </div>
+
+                                {/* Milestone Nodes */}
+                                {!tracking.isCancelled && (
+                                  <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 flex justify-between pointer-events-none px-0.5">
+                                    {tracking.steps.map((st, sIdx) => (
+                                      <div
+                                        key={sIdx}
+                                        className={`w-3.5 h-3.5 rounded-full border-2 transition-all ${
+                                          st.isCurrent
+                                            ? 'bg-[#5C6B4A] border-white ring-2 ring-[#5C6B4A]/40 scale-110'
+                                            : st.isReached
+                                            ? 'bg-[#5C6B4A] border-white'
+                                            : 'bg-white border-neutral-300'
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                              <div className="flex justify-between text-[10px] text-neutral-500 font-semibold mt-1.5">
-                                <span className="text-[#5C6B4A]">Order Confirmed</span>
-                                <span className={isShipped || isDelivered ? 'text-[#5C6B4A]' : ''}>Shipped</span>
-                                <span className={isDelivered ? 'text-[#5C6B4A]' : ''}>Delivered</span>
+
+                              {/* Milestone Step Labels */}
+                              <div className="grid grid-cols-4 text-center mt-2.5 gap-1">
+                                {tracking.steps.map((st, sIdx) => (
+                                  <div
+                                    key={sIdx}
+                                    className={`flex flex-col ${
+                                      sIdx === 0
+                                        ? 'items-start text-left'
+                                        : sIdx === tracking.steps.length - 1
+                                        ? 'items-end text-right'
+                                        : 'items-center text-center'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`text-[10px] sm:text-[11px] font-bold ${
+                                        st.isCurrent
+                                          ? 'text-[#5C6B4A]'
+                                          : st.isReached
+                                          ? 'text-neutral-800'
+                                          : 'text-neutral-400'
+                                      }`}
+                                    >
+                                      {st.label}
+                                    </span>
+                                    <span className="text-[9px] sm:text-[10px] text-neutral-400 font-medium">
+                                      {st.subLabel}
+                                    </span>
+                                  </div>
+                                ))}
                               </div>
                             </div>
 

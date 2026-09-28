@@ -63,7 +63,15 @@ const Cart = () => {
                       <Trash2 className="w-5 h-5" />
                     </button>
                     <Link to={`/product/${item.productId}`} className="w-20 h-20 bg-accent-light rounded-lg overflow-hidden flex-shrink-0 border border-neutral-light">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/images/luxury_promo_banner.jpg';
+                        }}
+                      />
                     </Link>
                     <Link to={`/product/${item.productId}`} className="font-semibold text-neutral-dark hover:text-primary transition-colors line-clamp-2">
                       {item.name}

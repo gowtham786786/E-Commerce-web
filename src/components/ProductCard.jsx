@@ -32,6 +32,14 @@ const ProductCard = ({ product, onQuickView }) => {
               src={product.images?.[0] || product.thumbnail} 
               alt={product.name} 
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              onError={(e) => {
+                e.target.onerror = null;
+                if (product.category === 'Fashion' || product.tags?.includes('signature archive')) {
+                  e.target.src = '/images/luxury_promo_banner.jpg';
+                } else {
+                  e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80';
+                }
+              }}
             />
           ) : (
             <div className="w-full h-full bg-neutral-light/50 flex flex-col items-center justify-center text-neutral group-hover:scale-105 transition-transform duration-500">

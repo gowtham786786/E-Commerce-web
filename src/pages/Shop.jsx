@@ -76,6 +76,8 @@ const Shop = () => {
     }
   }, [searchParams]);
 
+  const isSaleOnly = searchParams.get('sale') === 'true';
+
   // Update URL params when category or search changes (cleanly without trailing = or leaked params)
   useEffect(() => {
     const params = new URLSearchParams();
@@ -85,16 +87,27 @@ const Shop = () => {
     if (searchQuery) {
       params.set('search', searchQuery);
     }
+    if (isSaleOnly) {
+      params.set('sale', 'true');
+    }
     
     if (params.toString() !== searchParams.toString()) {
       setSearchParams(params, { replace: true });
     }
-  }, [canonicalCategory, searchQuery]);
+  }, [canonicalCategory, searchQuery, isSaleOnly]);
 
   // Client-side filtering and sorting
   const filteredAndSortedProducts = useMemo(() => {
     if (!products) return [];
     let result = [...products];
+
+    // Sale & Capsule filter
+    if (isSaleOnly) {
+      result = result.filter(p => 
+        (p.discount && p.discount > 0) || 
+        (p.tags && p.tags.some(t => t.toLowerCase().includes('signature archive') || t.toLowerCase() === 'sale'))
+      );
+    }
 
     // Category filter using robust normalization
     if (canonicalCategory !== 'All') {
@@ -134,15 +147,21 @@ const Shop = () => {
       case 'newest':
       default:
         result.sort((a, b) => {
-          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          // If in sale or default view, promote Signature Archive items to the top
+          const isArchiveA = a.id?.includes('archive') || a.tags?.includes('signature archive');
+          const isArchiveB = b.id?.includes('archive') || b.tags?.includes('signature archive');
+          if (isArchiveA && !isArchiveB) return -1;
+          if (!isArchiveA && isArchiveB) return 1;
+
+          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.created_at ? new Date(b.created_at).getTime() : 0);
           return timeB - timeA;
         });
         break;
     }
 
     return result;
-  }, [products, canonicalCategory, searchQuery, priceRange, minRating, sortBy]);
+  }, [products, canonicalCategory, searchQuery, priceRange, minRating, sortBy, isSaleOnly]);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -165,10 +184,16 @@ const Shop = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-neutral-dark mb-2">
-            {searchQuery ? `Search Results for "${searchQuery}"` : 'Shop All Products'}
+            {searchQuery 
+              ? `Search Results for "${searchQuery}"` 
+              : isSaleOnly 
+              ? 'Signature Archive & Limited Sale Capsule' 
+              : 'Shop All Products'}
           </h1>
           <p className="text-neutral">
-            Showing {filteredAndSortedProducts.length} results
+            {isSaleOnly 
+              ? `Curated limited-release capsule offering up to 40% discount (${filteredAndSortedProducts.length} items)` 
+              : `Showing ${filteredAndSortedProducts.length} results`}
           </p>
         </div>
 

@@ -1,5 +1,34 @@
 export const accessoriesProducts = [
   {
+    "id": "acc-archive-01",
+    "name": "Signature Archive Full-Grain Leather Cardholder & Wallet",
+    "description": "Complementary full-grain leather wallet and compact cardholder tailored in rich olive and deep navy tones. RFID protected with 6 card slots, central cash compartment, and burnished edge finishing for everyday sophistication.",
+    "brand": "ShopMate Signature",
+    "category": "Accessories",
+    "sub_category": "Wallets",
+    "price": 1799,
+    "discount": 40,
+    "gst": 18,
+    "stock": 40,
+    "sku": "SMS-ARCH-WLT-01",
+    "availability_status": "In Stock",
+    "colors": ["Olive Green", "Midnight Navy", "Tuscan Tan"],
+    "sizes": ["One Size"],
+    "tags": ["signature archive", "leather goods", "wallet", "cardholder", "luxury", "sale", "accessories"],
+    "featured": true,
+    "trending": true,
+    "best_seller": true,
+    "status": "published",
+    "thumbnail": "/images/products/Accessories/signature-archive-wallet/thumbnail.jpg",
+    "images": [
+      "/images/products/Accessories/signature-archive-wallet/thumbnail.jpg",
+      "/images/products/Accessories/signature-archive-wallet/image-1.jpg",
+      "/images/products/Accessories/signature-archive-wallet/image-2.jpg"
+    ],
+    "rating": 4.8,
+    "review_count": 52
+  },
+  {
     "id": "acce-001",
     "name": "Brown Leather Belt Watch",
     "description": "The Brown Leather Belt Watch is a stylish timepiece with a classic design. Featuring a genuine leather strap and a sleek dial, it adds a touch of sophistication to your look. Precision crafted luxury accessory, exquisite attention to detail and enduring elegance.",

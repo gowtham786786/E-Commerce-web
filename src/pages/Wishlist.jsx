@@ -46,6 +46,10 @@ const Wishlist = () => {
                   src={item.image} 
                   alt={item.name} 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/images/luxury_promo_banner.jpg';
+                  }}
                 />
               </Link>
               <button

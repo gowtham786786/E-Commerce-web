@@ -396,26 +396,37 @@ const Home = () => {
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3">
+                <Link
+                  to="/product/fash-archive-01"
+                  className="inline-flex bg-primary hover:bg-primary-dark text-white px-7 py-3.5 rounded-2xl font-semibold transition-all duration-300 items-center gap-2 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  <span>Shop Sneaker &bull; ₹8,999</span>
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
                 <Link
                   to="/shop?sale=true"
-                  className="inline-flex bg-primary hover:bg-primary-dark text-white px-8 py-3.5 rounded-2xl font-semibold transition-all duration-300 items-center gap-2 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 hover:-translate-y-0.5 active:translate-y-0"
+                  className="inline-flex bg-white/90 hover:bg-white text-neutral-800 border border-neutral-300 px-6 py-3.5 rounded-2xl font-semibold transition-all duration-300 items-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
                 >
-                  Explore Capsule <ArrowRight className="w-5 h-5" />
+                  <span>Explore Capsule</span>
                 </Link>
               </div>
             </div>
 
             {/* Banner Image with 8K Luxury Sneaker in brand colors */}
             <div className="flex-1 relative w-full flex justify-center lg:justify-end z-10">
-              <div className="relative group max-w-md w-full">
+              <Link to="/product/fash-archive-01" className="relative group max-w-md w-full block cursor-pointer">
                 <div className="absolute inset-0 bg-primary/10 rounded-3xl filter blur-2xl transform scale-95" />
                 <img
                   src="/images/luxury_promo_banner.jpg"
-                  alt="Luxury Olive and Navy Leather Collection"
+                  alt="Signature Archive Handcrafted Sneaker in Olive & Navy"
                   className="relative w-full h-auto object-cover rounded-3xl shadow-xl group-hover:scale-[1.02] transition-transform duration-700 border border-neutral-200/60"
                 />
-              </div>
+                <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-md group-hover:bg-primary transition-colors flex items-center gap-1.5">
+                  <span>View Product</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </div>
+              </Link>
             </div>
           </div>
         </section>
